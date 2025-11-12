@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -22,12 +22,33 @@ import {
 } from './ui/dialog';
 import { Label } from './ui/label';
 import { Plus, Search, Pencil, Trash2, Phone, Mail } from 'lucide-react';
-import { mockProveedores } from '../data/mockData';
+// fetch proveedores from API
 import type { Proveedor } from '../types';
 
 export function ProveedoresView() {
   const { permissions } = useAuth();
-  const [proveedores, setProveedores] = useState<Proveedor[]>(mockProveedores);
+  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const API_BASE = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:5000';
+
+  useEffect(() => {
+    const fetchProveedores = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${API_BASE}/api/suppliers`);
+        if (!res.ok) throw new Error(`Error fetching proveedores: ${res.status}`);
+        const data = await res.json();
+        setProveedores(data);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || String(err));
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProveedores();
+  }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProveedor, setEditingProveedor] = useState<Proveedor | null>(null);
@@ -39,33 +60,51 @@ export function ProveedoresView() {
       p.ciudad.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  if (loading) return <div>Loading proveedores...</div>;
+  if (error) return <div className="text-destructive">Error: {error}</div>;
+
   const handleAddEdit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    const proveedorData: Proveedor = {
-      id: editingProveedor?.id || Date.now().toString(),
+    const payload = {
       nombre: formData.get('nombre') as string,
       ruc: formData.get('ruc') as string,
-      contacto: formData.get('contacto') as string,
-      telefono: formData.get('telefono') as string,
-      email: formData.get('email') as string,
-      direccion: formData.get('direccion') as string,
-      ciudad: formData.get('ciudad') as string,
+      contacto: (formData.get('contacto') as string) || null,
+      telefono: (formData.get('telefono') as string) || null,
+      email: (formData.get('email') as string) || null,
+      direccion: (formData.get('direccion') as string) || null,
+      ciudad: (formData.get('ciudad') as string) || null,
       activo: true,
-      createdAt: editingProveedor?.createdAt || new Date().toISOString().split('T')[0],
-    };
+    } as any;
 
-    if (editingProveedor) {
-      setProveedores(
-        proveedores.map((p) => (p.id === editingProveedor.id ? proveedorData : p))
-      );
-    } else {
-      setProveedores([...proveedores, proveedorData]);
-    }
-
-    setIsDialogOpen(false);
-    setEditingProveedor(null);
+    (async () => {
+      try {
+        if (editingProveedor) {
+          const res = await fetch(`${API_BASE}/api/suppliers/${editingProveedor.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...editingProveedor, ...payload }),
+          });
+          if (!res.ok) throw new Error(`Update failed: ${res.status}`);
+          setProveedores(proveedores.map((p) => (p.id === editingProveedor.id ? { ...p, ...payload } : p)));
+        } else {
+          const res = await fetch(`${API_BASE}/api/suppliers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) throw new Error(`Create failed: ${res.status}`);
+          const created = await res.json();
+          setProveedores([created, ...proveedores]);
+        }
+        setIsDialogOpen(false);
+        setEditingProveedor(null);
+      } catch (err: any) {
+        console.error(err);
+        alert('Error al guardar proveedor: ' + (err.message || String(err)));
+      }
+    })();
   };
 
   const handleDelete = (id: string) => {

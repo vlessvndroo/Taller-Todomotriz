@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -23,12 +23,33 @@ import {
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Plus, Search, Pencil, Trash2, Shield } from 'lucide-react';
-import { mockUsuarios } from '../data/mockData';
+// replaced mock data with API fetch
 import type { User, UserRole } from '../types';
 
 export function UsuariosView() {
   const { permissions } = useAuth();
-  const [usuarios, setUsuarios] = useState<User[]>(mockUsuarios);
+  const [usuarios, setUsuarios] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const API_BASE = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:5000';
+
+  useEffect(() => {
+    const fetchUsuarios = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${API_BASE}/api/users`);
+        if (!res.ok) throw new Error(`Error fetching usuarios: ${res.status}`);
+        const data = await res.json();
+        setUsuarios(data);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || String(err));
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsuarios();
+  }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUsuario, setEditingUsuario] = useState<User | null>(null);
@@ -40,28 +61,50 @@ export function UsuariosView() {
       u.rol.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  if (loading) return <div>Loading usuarios...</div>;
+  if (error) return <div className="text-destructive">Error: {error}</div>;
+
   const handleAddEdit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-
-    const usuarioData: User = {
-      id: editingUsuario?.id || Date.now().toString(),
+    const payload = {
       nombre: formData.get('nombre') as string,
       email: formData.get('email') as string,
       rol: formData.get('rol') as UserRole,
-      telefono: formData.get('telefono') as string,
+      telefono: (formData.get('telefono') as string) || null,
       activo: true,
-      createdAt: editingUsuario?.createdAt || new Date().toISOString().split('T')[0],
-    };
+    } as any;
 
-    if (editingUsuario) {
-      setUsuarios(usuarios.map((u) => (u.id === editingUsuario.id ? usuarioData : u)));
-    } else {
-      setUsuarios([...usuarios, usuarioData]);
-    }
-
-    setIsDialogOpen(false);
-    setEditingUsuario(null);
+    (async () => {
+      try {
+        if (editingUsuario) {
+          // update
+          const res = await fetch(`${API_BASE}/api/users/${editingUsuario.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...editingUsuario, ...payload }),
+          });
+          if (!res.ok) throw new Error(`Update failed: ${res.status}`);
+          // update locally
+          setUsuarios(usuarios.map((u) => (u.id === editingUsuario.id ? { ...u, ...payload } : u)));
+        } else {
+          // create
+          const res = await fetch(`${API_BASE}/api/users`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) throw new Error(`Create failed: ${res.status}`);
+          const created = await res.json();
+          setUsuarios([created, ...usuarios]);
+        }
+        setIsDialogOpen(false);
+        setEditingUsuario(null);
+      } catch (err: any) {
+        console.error(err);
+        alert('Error al guardar usuario: ' + (err.message || String(err)));
+      }
+    })();
   };
 
   const handleDelete = (id: string) => {

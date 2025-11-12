@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -24,16 +24,44 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Plus, Search, Eye, FileText, Trash2 } from 'lucide-react';
-import { mockFacturas, mockInventario } from '../data/mockData';
+// replaced mocks with API fetch
 import type { Factura, ItemFactura } from '../types';
 
 export function FacturacionView() {
   const { permissions, user } = useAuth();
-  const [facturas, setFacturas] = useState<Factura[]>(mockFacturas);
+  const [facturas, setFacturas] = useState<Factura[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewingFactura, setViewingFactura] = useState<Factura | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [items, setItems] = useState<ItemFactura[]>([]);
+  const [productos, setProductos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const API_BASE = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:5000';
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [factRes, prodRes] = await Promise.all([
+          fetch(`${API_BASE}/api/invoices`),
+          fetch(`${API_BASE}/api/products`),
+        ]);
+        if (!factRes.ok) throw new Error(`Error fetching facturas: ${factRes.status}`);
+        if (!prodRes.ok) throw new Error(`Error fetching products: ${prodRes.status}`);
+        const facts = await factRes.json();
+        const prods = await prodRes.json();
+        setFacturas(facts);
+        setProductos(prods);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || String(err));
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const filteredFacturas = facturas.filter(
     (f) =>
@@ -43,7 +71,7 @@ export function FacturacionView() {
   );
 
   const handleAddItem = (productoId: string, cantidad: number) => {
-    const producto = mockInventario.find((p) => p.id === productoId);
+    const producto = productos.find((p) => p.id === productoId);
     if (!producto) return;
 
     const existingItem = items.find((i) => i.productoId === productoId);
@@ -87,28 +115,46 @@ export function FacturacionView() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const { subtotal, iva, total } = calculateTotals();
-
-    const nuevaFactura: Factura = {
-      id: Date.now().toString(),
+    const payload = {
       numeroFactura: `FAC-2024-${String(facturas.length + 1).padStart(3, '0')}`,
       fecha: new Date().toISOString(),
       cliente: formData.get('cliente') as string,
-      clienteRuc: formData.get('clienteRuc') as string,
-      vehiculo: formData.get('vehiculo') as string,
-      placa: formData.get('placa') as string,
-      items: [...items],
+      clienteRuc: (formData.get('clienteRuc') as string) || null,
+      vehiculo: (formData.get('vehiculo') as string) || null,
+      placa: (formData.get('placa') as string) || null,
+      items: items.map((it) => ({
+        productoId: it.productoId,
+        producto: it.producto,
+        cantidad: it.cantidad,
+        precioUnitario: it.precioUnitario,
+        subtotal: it.subtotal,
+      })),
       subtotal,
       iva,
       total,
       estado: 'pendiente',
       metodoPago: formData.get('metodoPago') as string,
-      observaciones: formData.get('observaciones') as string,
+      observaciones: (formData.get('observaciones') as string) || null,
       creadoPor: user?.nombre || '',
-    };
+    } as any;
 
-    setFacturas([nuevaFactura, ...facturas]);
-    setIsCreating(false);
-    setItems([]);
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/invoices`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error(`Create invoice failed: ${res.status}`);
+        const created: Factura = await res.json();
+        setFacturas([created, ...facturas]);
+        setIsCreating(false);
+        setItems([]);
+      } catch (err: any) {
+        console.error(err);
+        alert('Error al crear factura: ' + (err.message || String(err)));
+      }
+    })();
   };
 
   const handleAnular = (id: string) => {
@@ -129,6 +175,9 @@ export function FacturacionView() {
         return <Badge variant="destructive">Anulada</Badge>;
     }
   };
+
+  if (loading) return <div>Loading facturación...</div>;
+  if (error) return <div className="text-destructive">Error: {error}</div>;
 
   return (
     <div className="space-y-6">
@@ -279,11 +328,11 @@ export function FacturacionView() {
                       <SelectValue placeholder="Seleccione producto" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockInventario.map((producto) => (
-                        <SelectItem key={producto.id} value={producto.id}>
-                          {producto.nombre} - ${producto.precioVenta.toFixed(2)}
-                        </SelectItem>
-                      ))}
+                        {productos.map((producto) => (
+                          <SelectItem key={producto.id} value={producto.id}>
+                            {producto.nombre} - ${producto.precioVenta?.toFixed?.(2) ?? producto.precioVenta}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>

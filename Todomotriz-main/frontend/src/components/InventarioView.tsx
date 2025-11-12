@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -24,12 +24,41 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Plus, Search, Pencil, Trash2, AlertTriangle } from 'lucide-react';
-import { mockInventario, mockProveedores } from '../data/mockData';
+// replaced mocks with API fetch
 import type { ProductoInventario } from '../types';
 
 export function InventarioView() {
   const { permissions } = useAuth();
-  const [productos, setProductos] = useState<ProductoInventario[]>(mockInventario);
+  const [productos, setProductos] = useState<ProductoInventario[]>([]);
+  const [proveedores, setProveedores] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const API_BASE = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:5000';
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [prodRes, provRes] = await Promise.all([
+          fetch(`${API_BASE}/api/products`),
+          fetch(`${API_BASE}/api/suppliers`),
+        ]);
+        if (!prodRes.ok) throw new Error(`Error fetching products: ${prodRes.status}`);
+        if (!provRes.ok) throw new Error(`Error fetching suppliers: ${provRes.status}`);
+        const prods = await prodRes.json();
+        const provs = await provRes.json();
+        setProductos(prods);
+        // suppliers come as objects - use names for select
+        setProveedores(provs.map((p: any) => p.nombre));
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || String(err));
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProducto, setEditingProducto] = useState<ProductoInventario | null>(null);
@@ -43,33 +72,53 @@ export function InventarioView() {
       p.categoria.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  if (loading) return <div>Loading inventario...</div>;
+  if (error) return <div className="text-destructive">Error: {error}</div>;
+
   const handleAddEdit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
-    const productoData: ProductoInventario = {
-      id: editingProducto?.id || Date.now().toString(),
+    const payload = {
       codigo: formData.get('codigo') as string,
       nombre: formData.get('nombre') as string,
-      descripcion: formData.get('descripcion') as string,
-      categoria: formData.get('categoria') as string,
-      cantidad: Number(formData.get('cantidad')),
-      precioCompra: Number(formData.get('precioCompra')),
-      precioVenta: Number(formData.get('precioVenta')),
-      stockMinimo: Number(formData.get('stockMinimo')),
-      proveedor: formData.get('proveedor') as string,
-      ubicacion: formData.get('ubicacion') as string,
-      ultimaActualizacion: new Date().toISOString().split('T')[0],
-    };
+      descripcion: (formData.get('descripcion') as string) || null,
+      categoria: (formData.get('categoria') as string) || null,
+      cantidad: Number(formData.get('cantidad')) || 0,
+      precioCompra: Number(formData.get('precioCompra')) || 0,
+      precioVenta: Number(formData.get('precioVenta')) || 0,
+      stockMinimo: Number(formData.get('stockMinimo')) || 0,
+      proveedor: (formData.get('proveedor') as string) || null,
+      ubicacion: (formData.get('ubicacion') as string) || null,
+    } as any;
 
-    if (editingProducto) {
-      setProductos(productos.map((p) => (p.id === editingProducto.id ? productoData : p)));
-    } else {
-      setProductos([...productos, productoData]);
-    }
+    (async () => {
+      try {
+        if (editingProducto) {
+          const res = await fetch(`${API_BASE}/api/products/${editingProducto.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...editingProducto, ...payload }),
+          });
+          if (!res.ok) throw new Error(`Update failed: ${res.status}`);
+          setProductos(productos.map((p) => (p.id === editingProducto.id ? { ...p, ...payload } : p)));
+        } else {
+          const res = await fetch(`${API_BASE}/api/products`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) throw new Error(`Create failed: ${res.status}`);
+          const created = await res.json();
+          setProductos([created, ...productos]);
+        }
 
-    setIsDialogOpen(false);
-    setEditingProducto(null);
+        setIsDialogOpen(false);
+        setEditingProducto(null);
+      } catch (err: any) {
+        console.error(err);
+        alert('Error al guardar producto: ' + (err.message || String(err)));
+      }
+    })();
   };
 
   const handleDelete = (id: string) => {
@@ -299,9 +348,9 @@ export function InventarioView() {
                     <SelectValue placeholder="Seleccione" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockProveedores.map((prov) => (
-                      <SelectItem key={prov.id} value={prov.nombre}>
-                        {prov.nombre}
+                    {proveedores.map((prov) => (
+                      <SelectItem key={prov} value={prov}>
+                        {prov}
                       </SelectItem>
                     ))}
                   </SelectContent>
