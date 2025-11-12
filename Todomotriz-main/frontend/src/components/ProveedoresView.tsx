@@ -1,0 +1,295 @@
+import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Card, CardContent, CardHeader } from './ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from './ui/table';
+import { Badge } from './ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from './ui/dialog';
+import { Label } from './ui/label';
+import { Plus, Search, Pencil, Trash2, Phone, Mail } from 'lucide-react';
+import { mockProveedores } from '../data/mockData';
+import type { Proveedor } from '../types';
+
+export function ProveedoresView() {
+  const { permissions } = useAuth();
+  const [proveedores, setProveedores] = useState<Proveedor[]>(mockProveedores);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingProveedor, setEditingProveedor] = useState<Proveedor | null>(null);
+
+  const filteredProveedores = proveedores.filter(
+    (p) =>
+      p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.ruc.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.ciudad.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleAddEdit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    const proveedorData: Proveedor = {
+      id: editingProveedor?.id || Date.now().toString(),
+      nombre: formData.get('nombre') as string,
+      ruc: formData.get('ruc') as string,
+      contacto: formData.get('contacto') as string,
+      telefono: formData.get('telefono') as string,
+      email: formData.get('email') as string,
+      direccion: formData.get('direccion') as string,
+      ciudad: formData.get('ciudad') as string,
+      activo: true,
+      createdAt: editingProveedor?.createdAt || new Date().toISOString().split('T')[0],
+    };
+
+    if (editingProveedor) {
+      setProveedores(
+        proveedores.map((p) => (p.id === editingProveedor.id ? proveedorData : p))
+      );
+    } else {
+      setProveedores([...proveedores, proveedorData]);
+    }
+
+    setIsDialogOpen(false);
+    setEditingProveedor(null);
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm('¿Está seguro de eliminar este proveedor?')) {
+      setProveedores(proveedores.filter((p) => p.id !== id));
+    }
+  };
+
+  const toggleActivo = (id: string) => {
+    setProveedores(
+      proveedores.map((p) => (p.id === id ? { ...p, activo: !p.activo } : p))
+    );
+  };
+
+  const openDialog = (proveedor?: Proveedor) => {
+    setEditingProveedor(proveedor || null);
+    setIsDialogOpen(true);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1>Gestión de Proveedores</h1>
+          <p className="text-muted-foreground">
+            Administra los proveedores del taller
+          </p>
+        </div>
+        {permissions.proveedores.crear && (
+          <Button onClick={() => openDialog()}>
+            <Plus className="size-4 mr-2" />
+            Agregar Proveedor
+          </Button>
+        )}
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nombre, RUC o ciudad..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>RUC</TableHead>
+                  <TableHead>Contacto</TableHead>
+                  <TableHead>Ciudad</TableHead>
+                  <TableHead>Estado</TableHead>
+                  {(permissions.proveedores.editar || permissions.proveedores.eliminar) && (
+                    <TableHead>Acciones</TableHead>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProveedores.map((proveedor) => (
+                  <TableRow key={proveedor.id}>
+                    <TableCell>
+                      <div>
+                        <p>{proveedor.nombre}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {proveedor.direccion}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{proveedor.ruc}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p>{proveedor.contacto}</p>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Phone className="size-3" />
+                          {proveedor.telefono}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Mail className="size-3" />
+                          {proveedor.email}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{proveedor.ciudad}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={proveedor.activo ? 'default' : 'secondary'}
+                        className={proveedor.activo ? 'bg-green-600' : ''}
+                        onClick={() =>
+                          permissions.proveedores.editar && toggleActivo(proveedor.id)
+                        }
+                        style={{ cursor: permissions.proveedores.editar ? 'pointer' : 'default' }}
+                      >
+                        {proveedor.activo ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    </TableCell>
+                    {(permissions.proveedores.editar || permissions.proveedores.eliminar) && (
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {permissions.proveedores.editar && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openDialog(proveedor)}
+                            >
+                              <Pencil className="size-4" />
+                            </Button>
+                          )}
+                          {permissions.proveedores.eliminar && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(proveedor.id)}
+                            >
+                              <Trash2 className="size-4 text-destructive" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Dialog para agregar/editar proveedor */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingProveedor ? 'Editar Proveedor' : 'Agregar Nuevo Proveedor'}
+            </DialogTitle>
+            <DialogDescription>
+              Complete los datos del proveedor
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddEdit}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="nombre">Nombre de la Empresa</Label>
+                <Input
+                  id="nombre"
+                  name="nombre"
+                  defaultValue={editingProveedor?.nombre}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ruc">RUC</Label>
+                <Input
+                  id="ruc"
+                  name="ruc"
+                  defaultValue={editingProveedor?.ruc}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contacto">Nombre del Contacto</Label>
+                <Input
+                  id="contacto"
+                  name="contacto"
+                  defaultValue={editingProveedor?.contacto}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="telefono">Teléfono</Label>
+                <Input
+                  id="telefono"
+                  name="telefono"
+                  defaultValue={editingProveedor?.telefono}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Correo Electrónico</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  defaultValue={editingProveedor?.email}
+                  required
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="direccion">Dirección</Label>
+                <Input
+                  id="direccion"
+                  name="direccion"
+                  defaultValue={editingProveedor?.direccion}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ciudad">Ciudad</Label>
+                <Input
+                  id="ciudad"
+                  name="ciudad"
+                  defaultValue={editingProveedor?.ciudad}
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">
+                {editingProveedor ? 'Guardar Cambios' : 'Agregar Proveedor'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
