@@ -1,4 +1,4 @@
-import { ProductoInventario, Proveedor, Factura, User } from '../types/index.ts';
+import type { ProductoInventario, Proveedor, Factura, User } from '../types';
 
 export const mockProveedores: Proveedor[] = [
   {
