@@ -7,7 +7,7 @@ public class Supplier
     [Key]
     public Guid Id { get; set; }
     public string Nombre { get; set; } = null!;
-    public string Ruc { get; set; } = null!;
+    public string RIF { get; set; } = null!;
     public string? Contacto { get; set; }
     public string? Telefono { get; set; }
     public string? Email { get; set; }

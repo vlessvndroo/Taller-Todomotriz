@@ -40,7 +40,7 @@ public class SuppliersController : ControllerBase
         if (existing == null) return NotFound();
 
         existing.Nombre = supplier.Nombre;
-        existing.Ruc = supplier.Ruc;
+        existing.RIF = supplier.RIF;
         existing.Contacto = supplier.Contacto;
         existing.Telefono = supplier.Telefono;
         existing.Email = supplier.Email;

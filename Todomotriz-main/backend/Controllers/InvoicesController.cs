@@ -43,7 +43,7 @@ public class InvoicesController : ControllerBase
         existing.NumeroFactura = invoice.NumeroFactura;
         existing.Fecha = invoice.Fecha;
         existing.Cliente = invoice.Cliente;
-        existing.ClienteRuc = invoice.ClienteRuc;
+        existing.ClienteCedula = invoice.ClienteCedula;
         existing.Vehiculo = invoice.Vehiculo;
         existing.Placa = invoice.Placa;
         existing.Subtotal = invoice.Subtotal;

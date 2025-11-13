@@ -32,7 +32,8 @@ export interface ProductoInventario {
 export interface Proveedor {
   id: string;
   nombre: string;
-  ruc: string;
+  rif: string;
+  cedula: string;
   contacto: string;
   telefono: string;
   email: string;
@@ -56,7 +57,7 @@ export interface Factura {
   numeroFactura: string;
   fecha: string;
   cliente: string;
-  clienteRuc: string;
+  clienteCedula: string;
   vehiculo: string;
   placa: string;
   items: ItemFactura[];

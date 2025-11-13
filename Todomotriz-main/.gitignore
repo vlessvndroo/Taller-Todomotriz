@@ -50,3 +50,13 @@ frontend/coverage
 # Backend 
 # =================================================================
 
+backend/bin
+backend/obj
+backend/todomotriz.db
+backend/todomotriz.db-shm
+backend/todomotriz.db-wal
+backend/.env
+backend/logs
+backend/coverage
+backend/*.log
+

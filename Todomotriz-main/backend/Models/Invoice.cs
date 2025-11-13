@@ -9,7 +9,7 @@ public class Invoice
     public string NumeroFactura { get; set; } = null!;
     public DateTime Fecha { get; set; } = DateTime.UtcNow;
     public string Cliente { get; set; } = string.Empty;
-    public string? ClienteRuc { get; set; }
+    public string? ClienteCedula { get; set; }
     public string? Vehiculo { get; set; }
     public string? Placa { get; set; }
     public decimal Subtotal { get; set; }

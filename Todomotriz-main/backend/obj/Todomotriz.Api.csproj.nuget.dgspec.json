@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\HOME\\Documents\\KevinDocs\\UCAB\\Ing Software\\Todomotriz\\Todomotriz-main\\backend\\Todomotriz.Api.csproj": {}
+    "C:\\Users\\Alessi\\Documents\\ING SOFTWARE\\Todomotriz\\Todomotriz-main\\backend\\Todomotriz.Api.csproj": {}
   },
   "projects": {
-    "C:\\Users\\HOME\\Documents\\KevinDocs\\UCAB\\Ing Software\\Todomotriz\\Todomotriz-main\\backend\\Todomotriz.Api.csproj": {
+    "C:\\Users\\Alessi\\Documents\\ING SOFTWARE\\Todomotriz\\Todomotriz-main\\backend\\Todomotriz.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\HOME\\Documents\\KevinDocs\\UCAB\\Ing Software\\Todomotriz\\Todomotriz-main\\backend\\Todomotriz.Api.csproj",
+        "projectUniqueName": "C:\\Users\\Alessi\\Documents\\ING SOFTWARE\\Todomotriz\\Todomotriz-main\\backend\\Todomotriz.Api.csproj",
         "projectName": "Todomotriz.Api",
-        "projectPath": "C:\\Users\\HOME\\Documents\\KevinDocs\\UCAB\\Ing Software\\Todomotriz\\Todomotriz-main\\backend\\Todomotriz.Api.csproj",
-        "packagesPath": "C:\\Users\\HOME\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\HOME\\Documents\\KevinDocs\\UCAB\\Ing Software\\Todomotriz\\Todomotriz-main\\backend\\obj\\",
+        "projectPath": "C:\\Users\\Alessi\\Documents\\ING SOFTWARE\\Todomotriz\\Todomotriz-main\\backend\\Todomotriz.Api.csproj",
+        "packagesPath": "C:\\Users\\Alessi\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Alessi\\Documents\\ING SOFTWARE\\Todomotriz\\Todomotriz-main\\backend\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\HOME\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\Alessi\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"

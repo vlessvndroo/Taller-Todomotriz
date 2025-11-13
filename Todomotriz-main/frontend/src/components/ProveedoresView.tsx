@@ -52,11 +52,12 @@ export function ProveedoresView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProveedor, setEditingProveedor] = useState<Proveedor | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const filteredProveedores = proveedores.filter(
     (p) =>
       p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.ruc.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.rif.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.ciudad.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -69,7 +70,7 @@ export function ProveedoresView() {
 
     const payload = {
       nombre: formData.get('nombre') as string,
-      ruc: formData.get('ruc') as string,
+      rif: formData.get('rif') as string,
       contacto: (formData.get('contacto') as string) || null,
       telefono: (formData.get('telefono') as string) || null,
       email: (formData.get('email') as string) || null,
@@ -77,6 +78,28 @@ export function ProveedoresView() {
       ciudad: (formData.get('ciudad') as string) || null,
       activo: true,
     } as any;
+
+    // frontend validations: evitar rif/email duplicados
+    const errors: Record<string, string> = {};
+    const rifLower = (payload.rif || '').trim().toLowerCase();
+    const emailLower = (payload.email || '').trim().toLowerCase();
+    if (!rifLower) {
+      errors.rif = 'RIF requerido';
+    }
+    if (!emailLower) {
+      errors.email = 'Email requerido';
+    }
+    // buscar duplicados en la lista actual de proveedores
+    const duplicateRif = proveedores.find((p) => p.rif.trim().toLowerCase() === rifLower && (!editingProveedor || p.id !== editingProveedor.id));
+    const duplicateEmail = proveedores.find((p) => (p.email || '').trim().toLowerCase() === emailLower && (!editingProveedor || p.id !== editingProveedor.id));
+    if (duplicateRif) errors.rif = 'Ya existe un proveedor con ese RIF';
+    if (duplicateEmail) errors.email = 'Ya existe un proveedor con ese correo';
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    setFormErrors({});
 
     (async () => {
       try {
@@ -147,7 +170,7 @@ export function ProveedoresView() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nombre, RUC o ciudad..."
+                placeholder="Buscar por nombre, RIF o ciudad..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -161,7 +184,7 @@ export function ProveedoresView() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre</TableHead>
-                  <TableHead>RUC</TableHead>
+                  <TableHead>RIF</TableHead>
                   <TableHead>Contacto</TableHead>
                   <TableHead>Ciudad</TableHead>
                   <TableHead>Estado</TableHead>
@@ -181,7 +204,7 @@ export function ProveedoresView() {
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell>{proveedor.ruc}</TableCell>
+                    <TableCell>{proveedor.rif}</TableCell>
                     <TableCell>
                       <div>
                         <p>{proveedor.contacto}</p>
@@ -215,7 +238,7 @@ export function ProveedoresView() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => openDialog(proveedor)}
+                              //onClick={() => openDialog(proveedor)}
                             >
                               <Pencil className="size-4" />
                             </Button>
@@ -224,7 +247,7 @@ export function ProveedoresView() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDelete(proveedor.id)}
+                              //onClick={() => handleDelete(proveedor.id)}
                             >
                               <Trash2 className="size-4 text-destructive" />
                             </Button>
@@ -263,13 +286,16 @@ export function ProveedoresView() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ruc">RUC</Label>
+                <Label htmlFor="rif">RIF</Label>
                 <Input
-                  id="ruc"
-                  name="ruc"
-                  defaultValue={editingProveedor?.ruc}
+                  id="rif"
+                  name="rif"
+                  defaultValue={editingProveedor?.rif}
                   required
                 />
+                {formErrors.rif && (
+                  <p className="text-destructive text-sm mt-1">{formErrors.rif}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="contacto">Nombre del Contacto</Label>
@@ -298,6 +324,9 @@ export function ProveedoresView() {
                   defaultValue={editingProveedor?.email}
                   required
                 />
+                {formErrors.email && (
+                  <p className="text-destructive text-sm mt-1">{formErrors.email}</p>
+                )}
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="direccion">Dirección</Label>

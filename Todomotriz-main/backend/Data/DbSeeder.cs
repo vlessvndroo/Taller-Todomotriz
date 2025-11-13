@@ -28,9 +28,9 @@ public static class DbSeeder
         // Seed Suppliers
         var suppliers = new List<Supplier>
         {
-            new Supplier { Id = Guid.NewGuid(), Nombre = "AutoPartes del Ecuador S.A.", Ruc = "1792345678001", Contacto = "María González", Telefono = "0991234567", Email = "contacto@autopartes.com", Direccion = "Av. Principal 123", Ciudad = "Quito", Activo = true, CreatedAt = DateTime.Parse("2024-01-15") },
-            new Supplier { Id = Guid.NewGuid(), Nombre = "Repuestos Automotrices CIA LTDA", Ruc = "1798765432001", Contacto = "Pedro Martínez", Telefono = "0987654321", Email = "ventas@repuestosautomotrices.com", Direccion = "Calle Secundaria 456", Ciudad = "Guayaquil", Activo = true, CreatedAt = DateTime.Parse("2024-02-01") },
-            new Supplier { Id = Guid.NewGuid(), Nombre = "Importadora de Lubricantes", Ruc = "1791122334001", Contacto = "Ana Silva", Telefono = "0993344556", Email = "info@lubricantes.com", Direccion = "Parque Industrial Norte", Ciudad = "Cuenca", Activo = true, CreatedAt = DateTime.Parse("2024-01-20") }
+            new Supplier { Id = Guid.NewGuid(), Nombre = "AutoPartes de Caracas S.A.", RIF = "1792345678001", Contacto = "María González", Telefono = "0991234567", Email = "contacto@autopartes.com", Direccion = "Av. Principal 123", Ciudad = "Quito", Activo = true, CreatedAt = DateTime.Parse("2024-01-15") },
+            new Supplier { Id = Guid.NewGuid(), Nombre = "Repuestos Automotrices CIA LTDA", RIF = "1798765432001", Contacto = "Pedro Martínez", Telefono = "0987654321", Email = "ventas@repuestosautomotrices.com", Direccion = "Calle Secundaria 456", Ciudad = "Guayaquil", Activo = true, CreatedAt = DateTime.Parse("2024-02-01") },
+            new Supplier { Id = Guid.NewGuid(), Nombre = "Importadora de Lubricantes", RIF = "1791122334001", Contacto = "Ana Silva", Telefono = "0993344556", Email = "info@lubricantes.com", Direccion = "Parque Industrial Norte", Ciudad = "Cuenca", Activo = true, CreatedAt = DateTime.Parse("2024-01-20") }
         };
 
         await context.Suppliers.AddRangeAsync(suppliers);
@@ -91,7 +91,7 @@ public static class DbSeeder
             NumeroFactura = "FAC-2024-001",
             Fecha = DateTime.Parse("2024-10-10T10:30:00"),
             Cliente = "Roberto Pérez",
-            ClienteRuc = "1712345678001",
+            ClienteCedula = "1712345678001",
             Vehiculo = "Toyota Corolla 2018",
             Placa = "ABC-1234",
             Subtotal = 50.00m,
@@ -111,7 +111,7 @@ public static class DbSeeder
             NumeroFactura = "FAC-2024-002",
             Fecha = DateTime.Parse("2024-10-11T14:15:00"),
             Cliente = "María López",
-            ClienteRuc = "1798765432001",
+            ClienteCedula = "1798765432001",
             Vehiculo = "Chevrolet Aveo 2020",
             Placa = "XYZ-5678",
             Subtotal = 55.00m,
@@ -130,7 +130,7 @@ public static class DbSeeder
             NumeroFactura = "FAC-2024-003",
             Fecha = DateTime.Parse("2024-10-12T09:00:00"),
             Cliente = "Luis Ramírez",
-            ClienteRuc = "1723456789001",
+            ClienteCedula = "1723456789001",
             Vehiculo = "Hyundai Accent 2019",
             Placa = "DEF-9012",
             Subtotal = 130.00m,

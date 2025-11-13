@@ -53,6 +53,7 @@ export function UsuariosView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUsuario, setEditingUsuario] = useState<User | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const filteredUsuarios = usuarios.filter(
     (u) =>
@@ -74,6 +75,22 @@ export function UsuariosView() {
       telefono: (formData.get('telefono') as string) || null,
       activo: true,
     } as any;
+
+    // frontend validation: email unique
+    const errors: Record<string, string> = {};
+    const emailLower = (payload.email || '').trim().toLowerCase();
+    if (!emailLower) {
+      errors.email = 'Email requerido';
+    }
+    const duplicate = usuarios.find((u) => u.email.trim().toLowerCase() === emailLower && (!editingUsuario || u.id !== editingUsuario.id));
+    if (duplicate) {
+      errors.email = 'Ya existe un usuario con ese correo';
+    }
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    setFormErrors({});
 
     (async () => {
       try {
@@ -220,7 +237,7 @@ export function UsuariosView() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => openDialog(usuario)}
+                              //onClick={() => openDialog(usuario)} // Enable edit functionality
                             >
                               <Pencil className="size-4" />
                             </Button>
@@ -229,7 +246,7 @@ export function UsuariosView() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDelete(usuario.id)}
+                              //onClick={() => handleDelete(usuario.id)} // Enable delete functionality
                             >
                               <Trash2 className="size-4 text-destructive" />
                             </Button>
@@ -302,6 +319,9 @@ export function UsuariosView() {
                   defaultValue={editingUsuario?.email}
                   required
                 />
+                {formErrors.email && (
+                  <p className="text-destructive text-sm mt-1">{formErrors.email}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="telefono">Teléfono</Label>

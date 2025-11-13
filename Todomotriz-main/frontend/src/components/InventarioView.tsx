@@ -62,6 +62,7 @@ export function InventarioView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProducto, setEditingProducto] = useState<ProductoInventario | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const categorias = ['Filtros', 'Lubricantes', 'Frenos', 'Baterías', 'Llantas', 'Electricidad', 'Suspensión'];
 
@@ -90,6 +91,31 @@ export function InventarioView() {
       proveedor: (formData.get('proveedor') as string) || null,
       ubicacion: (formData.get('ubicacion') as string) || null,
     } as any;
+
+    // frontend validations
+    const errors: Record<string, string> = {};
+    if (isNaN(payload.cantidad) || payload.cantidad < 0) {
+      errors.cantidad = 'La cantidad no puede ser negativa';
+    }
+    if (isNaN(payload.precioCompra) || payload.precioCompra < 0) {
+      errors.precioCompra = 'El precio de compra no puede ser negativo';
+    }
+    if (isNaN(payload.precioVenta) || payload.precioVenta < 0) {
+      errors.precioVenta = 'El precio de venta no puede ser negativo';
+    }
+    if (isNaN(payload.stockMinimo) || payload.stockMinimo < 0) {
+      errors.stockMinimo = 'El stock mínimo no puede ser negativo';
+    }
+    // extra sensible: precioVenta debe ser >= precioCompra
+    if (!errors.precioCompra && !errors.precioVenta && payload.precioVenta < payload.precioCompra) {
+      errors.precioVenta = 'El precio de venta debe ser mayor o igual al precio de compra';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    setFormErrors({});
 
     (async () => {
       try {
@@ -219,7 +245,7 @@ export function InventarioView() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => openDialog(producto)}
+                              //onClick={() => openDialog(producto)}
                             >
                               <Pencil className="size-4" />
                             </Button>
@@ -228,7 +254,7 @@ export function InventarioView() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDelete(producto.id)}
+                              //onClick={() => handleDelete(producto.id)}
                             >
                               <Trash2 className="size-4 text-destructive" />
                             </Button>
@@ -308,6 +334,9 @@ export function InventarioView() {
                   defaultValue={editingProducto?.cantidad}
                   required
                 />
+                {formErrors.cantidad && (
+                  <p className="text-destructive text-sm mt-1">{formErrors.cantidad}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="precioCompra">Precio Compra</Label>
@@ -319,6 +348,9 @@ export function InventarioView() {
                   defaultValue={editingProducto?.precioCompra}
                   required
                 />
+                {formErrors.precioCompra && (
+                  <p className="text-destructive text-sm mt-1">{formErrors.precioCompra}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="precioVenta">Precio Venta</Label>
@@ -330,6 +362,9 @@ export function InventarioView() {
                   defaultValue={editingProducto?.precioVenta}
                   required
                 />
+                {formErrors.precioVenta && (
+                  <p className="text-destructive text-sm mt-1">{formErrors.precioVenta}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="stockMinimo">Stock Mínimo</Label>
@@ -340,6 +375,9 @@ export function InventarioView() {
                   defaultValue={editingProducto?.stockMinimo}
                   required
                 />
+                {formErrors.stockMinimo && (
+                  <p className="text-destructive text-sm mt-1">{formErrors.stockMinimo}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="proveedor">Proveedor</Label>

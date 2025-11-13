@@ -1,13 +1,21 @@
 using System.IO;
 using Microsoft.EntityFrameworkCore;
 using Todomotriz.Api.Data;
+using System.Text.Json.Serialization;
 using Todomotriz.Api.Repositories;
 using Todomotriz.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+// Configure JSON serializer to ignore reference cycles coming from EF navigation properties
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        // increase max depth in case entities are deep; adjust as needed
+        options.JsonSerializerOptions.MaxDepth = 64;
+    });
 builder.Services.AddEndpointsApiExplorer();
 
 // Swagger with XML comments when available

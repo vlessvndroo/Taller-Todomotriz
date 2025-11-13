@@ -37,6 +37,7 @@ export function FacturacionView() {
   const [productos, setProductos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const API_BASE = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:5000';
 
   useEffect(() => {
@@ -106,7 +107,7 @@ export function FacturacionView() {
 
   const calculateTotals = () => {
     const subtotal = items.reduce((acc, item) => acc + item.subtotal, 0);
-    const iva = subtotal * 0.12;
+    const iva = subtotal * 0.16;
     const total = subtotal + iva;
     return { subtotal, iva, total };
   };
@@ -116,10 +117,10 @@ export function FacturacionView() {
     const formData = new FormData(e.currentTarget);
     const { subtotal, iva, total } = calculateTotals();
     const payload = {
-      numeroFactura: `FAC-2024-${String(facturas.length + 1).padStart(3, '0')}`,
+      numeroFactura: `FAC-2025-${String(facturas.length + 1).padStart(3, '0')}`,
       fecha: new Date().toISOString(),
       cliente: formData.get('cliente') as string,
-      clienteRuc: (formData.get('clienteRuc') as string) || null,
+      clienteCedula: (formData.get('clienteCedula') as string) || null,
       vehiculo: (formData.get('vehiculo') as string) || null,
       placa: (formData.get('placa') as string) || null,
       items: items.map((it) => ({
@@ -137,6 +138,24 @@ export function FacturacionView() {
       observaciones: (formData.get('observaciones') as string) || null,
       creadoPor: user?.nombre || '',
     } as any;
+
+    // frontend validation: validar que la cédula no sea vacía ni negativa
+    const errors: Record<string, string> = {};
+    const clienteCedula = ((formData.get('clienteCedula') as string) || '').trim();
+    if (!clienteCedula) {
+      errors.clienteCedula = 'Cédula requerida';
+    } else if (isNaN(Number(clienteCedula))) {
+      errors.clienteCedula = 'La cédula debe ser un número válido';
+    } else if (Number(clienteCedula) < 0) {
+      errors.clienteCedula = 'La cédula no puede ser un número negativo';
+    }
+
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    setFormErrors({});
 
     (async () => {
       try {
@@ -235,7 +254,7 @@ export function FacturacionView() {
                       <div>
                         <p>{factura.cliente}</p>
                         <p className="text-sm text-muted-foreground">
-                          RUC: {factura.clienteRuc}
+                          Cedula: {factura.clienteCedula}
                         </p>
                       </div>
                     </TableCell>
@@ -262,7 +281,7 @@ export function FacturacionView() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleAnular(factura.id)}
+                            //onClick={() => handleAnular(factura.id)}
                           >
                             <Trash2 className="size-4 text-destructive" />
                           </Button>
@@ -294,8 +313,11 @@ export function FacturacionView() {
                   <Input id="cliente" name="cliente" required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="clienteRuc">RUC/Cédula</Label>
-                  <Input id="clienteRuc" name="clienteRuc" required />
+                  <Label htmlFor="clienteCedula">Cédula</Label>
+                  <Input id="clienteCedula" name="clienteCedula" required />
+                  {formErrors.clienteCedula && (
+                    <p className="text-destructive text-sm mt-1">{formErrors.clienteCedula}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="vehiculo">Vehículo</Label>
@@ -373,7 +395,7 @@ export function FacturacionView() {
                   </Table>
                   <div className="mt-4 space-y-2 text-right">
                     <p>Subtotal: ${calculateTotals().subtotal.toFixed(2)}</p>
-                    <p>IVA (12%): ${calculateTotals().iva.toFixed(2)}</p>
+                    <p>IVA (16%): ${calculateTotals().iva.toFixed(2)}</p>
                     <p className="text-xl">
                       Total: ${calculateTotals().total.toFixed(2)}
                     </p>
@@ -419,7 +441,7 @@ export function FacturacionView() {
                 <div>
                   <p className="text-sm text-muted-foreground">Cliente</p>
                   <p>{viewingFactura.cliente}</p>
-                  <p className="text-sm">RUC: {viewingFactura.clienteRuc}</p>
+                  <p className="text-sm">Cedula: {viewingFactura.clienteCedula}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Vehículo</p>
