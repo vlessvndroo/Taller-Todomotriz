@@ -11,7 +11,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Permisos por rol
+// --- MATRIZ DE PERMISOS ---
 const rolePermissions: Record<UserRole, RolePermissions> = {
   admin: {
     inventario: { ver: true, crear: true, editar: true, eliminar: true },
@@ -23,75 +23,69 @@ const rolePermissions: Record<UserRole, RolePermissions> = {
     inventario: { ver: true, crear: true, editar: true, eliminar: false },
     facturacion: { ver: true, crear: true, editar: true, anular: true },
     proveedores: { ver: true, crear: true, editar: true, eliminar: false },
-    usuarios: { ver: true, crear: false, editar: false, eliminar: false },
+    usuarios: { ver: true, crear: false, editar: false, eliminar: false }, // Ver lista, no editar
   },
   empleado: {
     inventario: { ver: true, crear: false, editar: false, eliminar: false },
-    facturacion: { ver: true, crear: true, editar: false, anular: false },
+    facturacion: { ver: true, crear: true, editar: false, anular: false }, // Crea, no edita
     proveedores: { ver: true, crear: false, editar: false, eliminar: false },
-    usuarios: { ver: false, crear: false, editar: false, eliminar: false },
+    usuarios: { ver: false, crear: false, editar: false, eliminar: false }, // Sin acceso
   },
 };
-
-// Usuarios de prueba
-const mockUsers: AuthUser[] = [
-  {
-    id: '1',
-    nombre: 'Admin Principal',
-    email: 'admin@taller.com',
-    rol: 'admin',
-    activo: true,
-    telefono: '0999999999',
-    createdAt: '2024-01-01',
-    token: 'mock-token-admin',
-  },
-  {
-    id: '2',
-    nombre: 'Juan Gerente',
-    email: 'gerente@taller.com',
-    rol: 'gerente',
-    activo: true,
-    telefono: '0988888888',
-    createdAt: '2024-01-01',
-    token: 'mock-token-gerente',
-  },
-  {
-    id: '3',
-    nombre: 'Carlos Empleado',
-    email: 'empleado@taller.com',
-    rol: 'empleado',
-    activo: true,
-    telefono: '0977777777',
-    createdAt: '2024-01-01',
-    token: 'mock-token-empleado',
-  },
-];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Ajusta el puerto si tu backend corre en el 5001 o 5000
+  const API_BASE = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:5000';
 
   useEffect(() => {
-    // Verificar si hay un usuario guardado en localStorage
+    // Recuperar sesión al recargar
     const savedUser = localStorage.getItem('authUser');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (e) {
+        localStorage.removeItem('authUser');
+      }
     }
     setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
-    // Simular llamada a API - en producción esto llamaría a tu backend C#
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      // PETICIÓN REAL AL BACKEND
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const foundUser = mockUsers.find((u) => u.email === email);
-    
-    if (!foundUser || password !== 'password123') {
-      throw new Error('Credenciales inválidas');
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Error al iniciar sesión');
+      }
+
+      // Validar rol recibido (convertimos a minúsculas por si acaso viene "Admin")
+      const rolRecibido = data.rol.toLowerCase() as UserRole;
+      if (!rolePermissions[rolRecibido]) {
+        throw new Error(`Rol desconocido: ${data.rol}`);
+      }
+
+      const authUser: AuthUser = { 
+        ...data,
+        rol: rolRecibido 
+      };
+      
+      setUser(authUser);
+      localStorage.setItem('authUser', JSON.stringify(authUser));
+
+    } catch (error) {
+      console.error("Login Error:", error);
+      throw error;
     }
-
-    setUser(foundUser);
-    localStorage.setItem('authUser', JSON.stringify(foundUser));
   };
 
   const logout = () => {
@@ -99,7 +93,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('authUser');
   };
 
-  const permissions = user ? rolePermissions[user.rol] : rolePermissions.empleado;
+  // Permisos según rol actual
+  const permissions = user 
+    ? rolePermissions[user.rol] 
+    : rolePermissions.empleado; 
 
   return (
     <AuthContext.Provider value={{ user, login, logout, permissions, isLoading }}>

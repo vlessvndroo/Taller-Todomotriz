@@ -22,16 +22,26 @@ import {
 } from './ui/dialog';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Plus, Search, Pencil, Trash2, Shield } from 'lucide-react';
-// replaced mock data with API fetch
+import { Plus, Search, Pencil, Trash2, Shield, Lock, Phone } from 'lucide-react';
 import type { User, UserRole } from '../types';
 
 export function UsuariosView() {
-  const { permissions } = useAuth();
+  const { user: currentUser, permissions } = useAuth(); // Necesitamos 'currentUser' para saber si soy admin
   const [usuarios, setUsuarios] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Estados para el teléfono dividido
+  const [tlfPrefijo, setTlfPrefijo] = useState('0412');
+  const [tlfNumero, setTlfNumero] = useState('');
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingUsuario, setEditingUsuario] = useState<User | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
   const API_BASE = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:5000';
+  const prefijosTelefonicos = ['0412', '0414', '0424', '0416', '0426', '0422', '0212'];
 
   useEffect(() => {
     const fetchUsuarios = async () => {
@@ -50,10 +60,6 @@ export function UsuariosView() {
     };
     fetchUsuarios();
   }, []);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingUsuario, setEditingUsuario] = useState<User | null>(null);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const filteredUsuarios = usuarios.filter(
     (u) =>
@@ -62,30 +68,44 @@ export function UsuariosView() {
       u.rol.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) return <div>Loading usuarios...</div>;
-  if (error) return <div className="text-destructive">Error: {error}</div>;
-
+  // --- LÓGICA DE GUARDADO ---
   const handleAddEdit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    
+    // Construir teléfono
+    let telefonoFinal = null;
+    if (tlfNumero.trim() !== '') {
+        telefonoFinal = `${tlfPrefijo}-${tlfNumero}`;
+    }
+
+    // Recopilar datos
     const payload = {
       nombre: formData.get('nombre') as string,
       email: formData.get('email') as string,
       rol: formData.get('rol') as UserRole,
-      telefono: (formData.get('telefono') as string) || null,
-      activo: true,
+      telefono: telefonoFinal,
+      // La contraseña se envía si se escribió algo, o si es un usuario nuevo
+      password: (formData.get('password') as string) || (editingUsuario ? (editingUsuario as any).password : 'password123'),
+      activo: true, 
     } as any;
 
-    // frontend validation: email unique
     const errors: Record<string, string> = {};
-    const emailLower = (payload.email || '').trim().toLowerCase();
-    if (!emailLower) {
-      errors.email = 'Email requerido';
+    
+    // Validaciones
+    if (!payload.email) errors.email = 'Email requerido';
+    
+    // Validar teléfono (si escribió algo, deben ser 7 números)
+    if (tlfNumero.trim() !== '' && !/^\d{7}$/.test(tlfNumero)) {
+        errors.telefono = 'El número debe tener exactamente 7 dígitos';
     }
-    const duplicate = usuarios.find((u) => u.email.trim().toLowerCase() === emailLower && (!editingUsuario || u.id !== editingUsuario.id));
-    if (duplicate) {
-      errors.email = 'Ya existe un usuario con ese correo';
+
+    // Validar contraseña (Obligatoria si es nuevo)
+    const passInput = formData.get('password') as string;
+    if (!editingUsuario && !passInput) {
+        errors.password = 'La contraseña es obligatoria para nuevos usuarios';
     }
+
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
@@ -95,47 +115,75 @@ export function UsuariosView() {
     (async () => {
       try {
         if (editingUsuario) {
-          // update
+          // UPDATE
           const res = await fetch(`${API_BASE}/api/users/${editingUsuario.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...editingUsuario, ...payload }),
           });
-          if (!res.ok) throw new Error(`Update failed: ${res.status}`);
-          // update locally
+
+          if (!res.ok) throw new Error(`Error al actualizar: ${res.status}`);
+          
           setUsuarios(usuarios.map((u) => (u.id === editingUsuario.id ? { ...u, ...payload } : u)));
+          alert('Usuario modificado correctamente');
         } else {
-          // create
+          // CREATE
           const res = await fetch(`${API_BASE}/api/users`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
           });
-          if (!res.ok) throw new Error(`Create failed: ${res.status}`);
+
+          if (!res.ok) throw new Error(`Error al crear: ${res.status}`);
           const created = await res.json();
           setUsuarios([created, ...usuarios]);
+          alert('Usuario creado correctamente');
         }
+
         setIsDialogOpen(false);
         setEditingUsuario(null);
       } catch (err: any) {
         console.error(err);
-        alert('Error al guardar usuario: ' + (err.message || String(err)));
+        alert('Error al guardar: ' + (err.message || String(err)));
       }
     })();
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('¿Está seguro de eliminar este usuario?')) {
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Está seguro de eliminar este usuario?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/users/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`Error al eliminar: ${res.status}`);
       setUsuarios(usuarios.filter((u) => u.id !== id));
+    } catch (err: any) {
+      console.error(err);
+      alert('No se pudo eliminar el usuario. ' + (err.message || ''));
     }
   };
 
   const toggleActivo = (id: string) => {
+    // Nota: Idealmente esto debería hacer una petición PUT al backend para persistir el cambio
     setUsuarios(usuarios.map((u) => (u.id === id ? { ...u, activo: !u.activo } : u)));
   };
 
   const openDialog = (usuario?: User) => {
-    setEditingUsuario(usuario || null);
+    if (usuario) {
+      setEditingUsuario(usuario);
+      // Separar teléfono si existe
+      if (usuario.telefono && usuario.telefono.includes('-')) {
+        const [pref, num] = usuario.telefono.split('-');
+        setTlfPrefijo(pref);
+        setTlfNumero(num);
+      } else {
+        setTlfPrefijo('0412');
+        setTlfNumero('');
+      }
+    } else {
+      setEditingUsuario(null);
+      setTlfPrefijo('0412');
+      setTlfNumero('');
+    }
+    setFormErrors({});
     setIsDialogOpen(true);
   };
 
@@ -145,11 +193,7 @@ export function UsuariosView() {
       gerente: { label: 'Gerente', className: 'bg-blue-600' },
       empleado: { label: 'Empleado', className: 'bg-green-600' },
     };
-    return (
-      <Badge className={config[rol].className}>
-        {config[rol].label}
-      </Badge>
-    );
+    return <Badge className={config[rol].className}>{config[rol].label}</Badge>;
   };
 
   const getRolePermissionsDisplay = (rol: UserRole) => {
@@ -160,6 +204,12 @@ export function UsuariosView() {
     };
     return permisos[rol];
   };
+
+  // Verificamos si el usuario actual es admin para mostrar contraseñas
+  const isAdmin = currentUser?.rol === 'admin';
+
+  if (loading) return <div>Cargando usuarios...</div>;
+  if (error) return <div className="text-destructive">Error: {error}</div>;
 
   return (
     <div className="space-y-6">
@@ -201,8 +251,9 @@ export function UsuariosView() {
                   <TableHead>Email</TableHead>
                   <TableHead>Teléfono</TableHead>
                   <TableHead>Rol</TableHead>
+                  {/* COLUMNA PASSWORD (Solo Admin) */}
+                  {isAdmin && <TableHead className="text-red-500 font-bold">Contraseña</TableHead>}
                   <TableHead>Estado</TableHead>
-                  <TableHead>Fecha Registro</TableHead>
                   {(permissions.usuarios.editar || permissions.usuarios.eliminar) && (
                     <TableHead>Acciones</TableHead>
                   )}
@@ -211,25 +262,38 @@ export function UsuariosView() {
               <TableBody>
                 {filteredUsuarios.map((usuario) => (
                   <TableRow key={usuario.id}>
-                    <TableCell>{usuario.nombre}</TableCell>
+                    <TableCell className="font-medium">{usuario.nombre}</TableCell>
                     <TableCell>{usuario.email}</TableCell>
-                    <TableCell>{usuario.telefono || 'N/A'}</TableCell>
+                    <TableCell>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            {usuario.telefono ? <Phone className="size-3" /> : null}
+                            {usuario.telefono || 'N/A'}
+                        </div>
+                    </TableCell>
                     <TableCell>{getRolBadge(usuario.rol)}</TableCell>
+                    
+                    {/* CELDA PASSWORD (Solo Admin) */}
+                    {isAdmin && (
+                        <TableCell>
+                            <div className="flex items-center gap-1 text-xs font-mono bg-gray-100 p-1 rounded w-fit text-gray-600">
+                                <Lock className="size-3" />
+                                {/* Mostramos la contraseña si viene del backend, sino asteriscos */}
+                                {(usuario as any).password || '****'}
+                            </div>
+                        </TableCell>
+                    )}
+
                     <TableCell>
                       <Badge
                         variant={usuario.activo ? 'default' : 'secondary'}
                         className={usuario.activo ? 'bg-green-600' : ''}
-                        onClick={() =>
-                          permissions.usuarios.editar && toggleActivo(usuario.id)
-                        }
+                        onClick={() => permissions.usuarios.editar && toggleActivo(usuario.id)}
                         style={{ cursor: permissions.usuarios.editar ? 'pointer' : 'default' }}
                       >
                         {usuario.activo ? 'Activo' : 'Inactivo'}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      {new Date(usuario.createdAt).toLocaleDateString('es-EC')}
-                    </TableCell>
+                    
                     {(permissions.usuarios.editar || permissions.usuarios.eliminar) && (
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -237,7 +301,7 @@ export function UsuariosView() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              //onClick={() => openDialog(usuario)} // Enable edit functionality
+                              onClick={() => openDialog(usuario)}
                             >
                               <Pencil className="size-4" />
                             </Button>
@@ -246,7 +310,7 @@ export function UsuariosView() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              //onClick={() => handleDelete(usuario.id)} // Enable delete functionality
+                              onClick={() => handleDelete(usuario.id)}
                             >
                               <Trash2 className="size-4 text-destructive" />
                             </Button>
@@ -262,7 +326,7 @@ export function UsuariosView() {
         </CardContent>
       </Card>
 
-      {/* Información de Roles y Permisos */}
+      {/* Información de Roles */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -288,7 +352,7 @@ export function UsuariosView() {
         </CardContent>
       </Card>
 
-      {/* Dialog para agregar/editar usuario */}
+      {/* Dialog para agregar/editar */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -296,20 +360,23 @@ export function UsuariosView() {
               {editingUsuario ? 'Editar Usuario' : 'Agregar Nuevo Usuario'}
             </DialogTitle>
             <DialogDescription>
-              Complete los datos del usuario
+              Complete los datos del usuario para el acceso al sistema.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddEdit}>
             <div className="space-y-4 py-4">
+              
               <div className="space-y-2">
                 <Label htmlFor="nombre">Nombre Completo</Label>
                 <Input
                   id="nombre"
                   name="nombre"
                   defaultValue={editingUsuario?.nombre}
+                  placeholder="Ej: Juan Pérez"
                   required
                 />
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email">Correo Electrónico</Label>
                 <Input
@@ -317,20 +384,51 @@ export function UsuariosView() {
                   name="email"
                   type="email"
                   defaultValue={editingUsuario?.email}
+                  placeholder="usuario@taller.com"
                   required
                 />
-                {formErrors.email && (
-                  <p className="text-destructive text-sm mt-1">{formErrors.email}</p>
+                {formErrors.email && <p className="text-destructive text-xs">{formErrors.email}</p>}
+              </div>
+
+              {/* CAMPO DE CONTRASEÑA */}
+              <div className="space-y-2">
+                 <Label htmlFor="password">Contraseña</Label>
+                 <Input 
+                    id="password"
+                    name="password"
+                    type="text" // Texto visible para que el admin verifique
+                    placeholder={editingUsuario ? "Dejar en blanco para no cambiar" : "Contraseña inicial"}
+                 />
+                 {formErrors.password && <p className="text-destructive text-xs">{formErrors.password}</p>}
+              </div>
+
+              {/* CAMPO TELEFONO (MEJORADO VENEZUELA) */}
+              <div className="space-y-2">
+                <Label>Teléfono</Label>
+                <div className="flex gap-2">
+                  <Select value={tlfPrefijo} onValueChange={setTlfPrefijo}>
+                    <SelectTrigger className="w-[90px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {prefijosTelefonicos.map((p) => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="number"
+                    placeholder="1234567"
+                    value={tlfNumero}
+                    onChange={(e) => setTlfNumero(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+                {formErrors.telefono && (
+                  <p className="text-destructive text-xs">{formErrors.telefono}</p>
                 )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="telefono">Teléfono</Label>
-                <Input
-                  id="telefono"
-                  name="telefono"
-                  defaultValue={editingUsuario?.telefono}
-                />
-              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="rol">Rol</Label>
                 <Select name="rol" defaultValue={editingUsuario?.rol || 'empleado'}>
@@ -344,16 +442,7 @@ export function UsuariosView() {
                   </SelectContent>
                 </Select>
               </div>
-              {!editingUsuario && (
-                <div className="bg-muted p-3 rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    La contraseña predeterminada será: <strong>password123</strong>
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    El usuario deberá cambiarla en el primer inicio de sesión.
-                  </p>
-                </div>
-              )}
+
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>

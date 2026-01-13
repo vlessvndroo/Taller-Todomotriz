@@ -24,7 +24,6 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Plus, Search, Pencil, Trash2, AlertTriangle } from 'lucide-react';
-// replaced mocks with API fetch
 import type { ProductoInventario } from '../types';
 
 export function InventarioView() {
@@ -33,8 +32,11 @@ export function InventarioView() {
   const [proveedores, setProveedores] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // URL API
   const API_BASE = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:5000';
 
+  // Cargar datos
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -45,10 +47,11 @@ export function InventarioView() {
         ]);
         if (!prodRes.ok) throw new Error(`Error fetching products: ${prodRes.status}`);
         if (!provRes.ok) throw new Error(`Error fetching suppliers: ${provRes.status}`);
+        
         const prods = await prodRes.json();
         const provs = await provRes.json();
+        
         setProductos(prods);
-        // suppliers come as objects - use names for select
         setProveedores(provs.map((p: any) => p.nombre));
       } catch (err: any) {
         console.error(err);
@@ -59,12 +62,13 @@ export function InventarioView() {
     };
     fetchData();
   }, []);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProducto, setEditingProducto] = useState<ProductoInventario | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  const categorias = ['Filtros', 'Lubricantes', 'Frenos', 'Baterías', 'Llantas', 'Electricidad', 'Suspensión'];
+  const categorias = ['Filtros', 'Lubricantes', 'Frenos', 'Baterías', 'Llantas', 'Electricidad', 'Suspensión', 'Motor', 'Transmisión'];
 
   const filteredProductos = productos.filter(
     (p) =>
@@ -73,42 +77,43 @@ export function InventarioView() {
       p.categoria.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) return <div>Loading inventario...</div>;
-  if (error) return <div className="text-destructive">Error: {error}</div>;
+  // --- LÓGICA DE VALIDACIÓN Y GUARDADO ---
 
   const handleAddEdit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    
     const payload = {
       codigo: formData.get('codigo') as string,
-      nombre: formData.get('nombre') as string,
+      nombre: (formData.get('nombre') as string).trim(),
       descripcion: (formData.get('descripcion') as string) || null,
       categoria: (formData.get('categoria') as string) || null,
-      cantidad: Number(formData.get('cantidad')) || 0,
-      precioCompra: Number(formData.get('precioCompra')) || 0,
-      precioVenta: Number(formData.get('precioVenta')) || 0,
-      stockMinimo: Number(formData.get('stockMinimo')) || 0,
+      cantidad: Number(formData.get('cantidad')),
+      precioCompra: Number(formData.get('precioCompra')),
+      precioVenta: Number(formData.get('precioVenta')),
+      stockMinimo: Number(formData.get('stockMinimo')),
       proveedor: (formData.get('proveedor') as string) || null,
       ubicacion: (formData.get('ubicacion') as string) || null,
     } as any;
 
-    // frontend validations
     const errors: Record<string, string> = {};
-    if (isNaN(payload.cantidad) || payload.cantidad < 0) {
-      errors.cantidad = 'La cantidad no puede ser negativa';
+
+    // 1. Validar Nombre (No solo números)
+    // Regex: Al menos una letra (a-z o A-Z)
+    if (!/[a-zA-Z]/.test(payload.nombre)) {
+      errors.nombre = 'El nombre debe contener letras (no puede ser solo números).';
     }
-    if (isNaN(payload.precioCompra) || payload.precioCompra < 0) {
-      errors.precioCompra = 'El precio de compra no puede ser negativo';
-    }
-    if (isNaN(payload.precioVenta) || payload.precioVenta < 0) {
-      errors.precioVenta = 'El precio de venta no puede ser negativo';
-    }
-    if (isNaN(payload.stockMinimo) || payload.stockMinimo < 0) {
-      errors.stockMinimo = 'El stock mínimo no puede ser negativo';
-    }
-    // extra sensible: precioVenta debe ser >= precioCompra
+    if (!payload.nombre) errors.nombre = 'El nombre es requerido.';
+
+    // 2. Validar Negativos
+    if (payload.cantidad < 0) errors.cantidad = 'La cantidad no puede ser negativa.';
+    if (payload.precioCompra < 0) errors.precioCompra = 'El precio de compra no puede ser negativo.';
+    if (payload.precioVenta < 0) errors.precioVenta = 'El precio de venta no puede ser negativo.';
+    if (payload.stockMinimo < 0) errors.stockMinimo = 'El stock mínimo no puede ser negativo.';
+
+    // 3. Validar Consistencia de Precios (Opcional pero recomendado)
     if (!errors.precioCompra && !errors.precioVenta && payload.precioVenta < payload.precioCompra) {
-      errors.precioVenta = 'El precio de venta debe ser mayor o igual al precio de compra';
+      errors.precioVenta = 'Advertencia: El precio de venta es menor al costo.';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -117,46 +122,64 @@ export function InventarioView() {
     }
     setFormErrors({});
 
+    // Guardar en Backend
     (async () => {
       try {
         if (editingProducto) {
+          // UPDATE (PUT)
           const res = await fetch(`${API_BASE}/api/products/${editingProducto.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...editingProducto, ...payload }),
           });
-          if (!res.ok) throw new Error(`Update failed: ${res.status}`);
+
+          if (!res.ok) throw new Error(`Error actualizando: ${res.status}`);
+          
           setProductos(productos.map((p) => (p.id === editingProducto.id ? { ...p, ...payload } : p)));
+          alert('Producto actualizado correctamente');
         } else {
+          // CREATE (POST)
           const res = await fetch(`${API_BASE}/api/products`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
           });
-          if (!res.ok) throw new Error(`Create failed: ${res.status}`);
+
+          if (!res.ok) throw new Error(`Error creando: ${res.status}`);
           const created = await res.json();
           setProductos([created, ...productos]);
+          alert('Producto agregado al inventario');
         }
 
         setIsDialogOpen(false);
         setEditingProducto(null);
       } catch (err: any) {
         console.error(err);
-        alert('Error al guardar producto: ' + (err.message || String(err)));
+        alert('Error al guardar: ' + err.message);
       }
     })();
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('¿Está seguro de eliminar este producto?')) {
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Está seguro de eliminar este producto?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/products/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`Error deleting`);
       setProductos(productos.filter((p) => p.id !== id));
+    } catch (e) { 
+      console.error(e);
+      alert('Error al eliminar producto'); 
     }
   };
 
   const openDialog = (producto?: ProductoInventario) => {
     setEditingProducto(producto || null);
+    setFormErrors({});
     setIsDialogOpen(true);
   };
+
+  if (loading) return <div>Cargando inventario...</div>;
+  if (error) return <div className="text-destructive">Error: {error}</div>;
 
   return (
     <div className="space-y-6">
@@ -209,7 +232,7 @@ export function InventarioView() {
               <TableBody>
                 {filteredProductos.map((producto) => (
                   <TableRow key={producto.id}>
-                    <TableCell>{producto.codigo}</TableCell>
+                    <TableCell className="font-medium">{producto.codigo}</TableCell>
                     <TableCell>
                       <div>
                         <p>{producto.nombre}</p>
@@ -245,7 +268,8 @@ export function InventarioView() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              //onClick={() => openDialog(producto)}
+                              onClick={() => openDialog(producto)}
+                              className="text-blue-600 hover:text-blue-800"
                             >
                               <Pencil className="size-4" />
                             </Button>
@@ -254,9 +278,10 @@ export function InventarioView() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              //onClick={() => handleDelete(producto.id)}
+                              onClick={() => handleDelete(producto.id)}
+                              className="text-red-500 hover:text-red-700"
                             >
-                              <Trash2 className="size-4 text-destructive" />
+                              <Trash2 className="size-4" />
                             </Button>
                           )}
                         </div>
@@ -278,11 +303,13 @@ export function InventarioView() {
               {editingProducto ? 'Editar Producto' : 'Agregar Nuevo Producto'}
             </DialogTitle>
             <DialogDescription>
-              Complete los datos del producto
+              Complete los datos del producto.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddEdit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+              
+              {/* CODIGO */}
               <div className="space-y-2">
                 <Label htmlFor="codigo">Código</Label>
                 <Input
@@ -292,6 +319,8 @@ export function InventarioView() {
                   required
                 />
               </div>
+
+              {/* NOMBRE */}
               <div className="space-y-2">
                 <Label htmlFor="nombre">Nombre</Label>
                 <Input
@@ -300,7 +329,12 @@ export function InventarioView() {
                   defaultValue={editingProducto?.nombre}
                   required
                 />
+                {formErrors.nombre && (
+                  <p className="text-destructive text-xs">{formErrors.nombre}</p>
+                )}
               </div>
+
+              {/* DESCRIPCION */}
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="descripcion">Descripción</Label>
                 <Textarea
@@ -310,6 +344,8 @@ export function InventarioView() {
                   rows={2}
                 />
               </div>
+
+              {/* CATEGORIA */}
               <div className="space-y-2">
                 <Label htmlFor="categoria">Categoría</Label>
                 <Select name="categoria" defaultValue={editingProducto?.categoria}>
@@ -325,60 +361,74 @@ export function InventarioView() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* CANTIDAD */}
               <div className="space-y-2">
-                <Label htmlFor="cantidad">Cantidad</Label>
+                <Label htmlFor="cantidad">Cantidad Inicial</Label>
                 <Input
                   id="cantidad"
                   name="cantidad"
                   type="number"
+                  min="0"
                   defaultValue={editingProducto?.cantidad}
                   required
                 />
                 {formErrors.cantidad && (
-                  <p className="text-destructive text-sm mt-1">{formErrors.cantidad}</p>
+                  <p className="text-destructive text-xs">{formErrors.cantidad}</p>
                 )}
               </div>
+
+              {/* PRECIO COMPRA */}
               <div className="space-y-2">
-                <Label htmlFor="precioCompra">Precio Compra</Label>
+                <Label htmlFor="precioCompra">Precio Compra ($)</Label>
                 <Input
                   id="precioCompra"
                   name="precioCompra"
                   type="number"
                   step="0.01"
+                  min="0"
                   defaultValue={editingProducto?.precioCompra}
                   required
                 />
                 {formErrors.precioCompra && (
-                  <p className="text-destructive text-sm mt-1">{formErrors.precioCompra}</p>
+                  <p className="text-destructive text-xs">{formErrors.precioCompra}</p>
                 )}
               </div>
+
+              {/* PRECIO VENTA */}
               <div className="space-y-2">
-                <Label htmlFor="precioVenta">Precio Venta</Label>
+                <Label htmlFor="precioVenta">Precio Venta ($)</Label>
                 <Input
                   id="precioVenta"
                   name="precioVenta"
                   type="number"
                   step="0.01"
+                  min="0"
                   defaultValue={editingProducto?.precioVenta}
                   required
                 />
                 {formErrors.precioVenta && (
-                  <p className="text-destructive text-sm mt-1">{formErrors.precioVenta}</p>
+                  <p className="text-destructive text-xs">{formErrors.precioVenta}</p>
                 )}
               </div>
+
+              {/* STOCK MINIMO */}
               <div className="space-y-2">
                 <Label htmlFor="stockMinimo">Stock Mínimo</Label>
                 <Input
                   id="stockMinimo"
                   name="stockMinimo"
                   type="number"
+                  min="0"
                   defaultValue={editingProducto?.stockMinimo}
                   required
                 />
                 {formErrors.stockMinimo && (
-                  <p className="text-destructive text-sm mt-1">{formErrors.stockMinimo}</p>
+                  <p className="text-destructive text-xs">{formErrors.stockMinimo}</p>
                 )}
               </div>
+
+              {/* PROVEEDOR */}
               <div className="space-y-2">
                 <Label htmlFor="proveedor">Proveedor</Label>
                 <Select name="proveedor" defaultValue={editingProducto?.proveedor}>
@@ -394,6 +444,8 @@ export function InventarioView() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* UBICACION */}
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="ubicacion">Ubicación</Label>
                 <Input

@@ -21,8 +21,8 @@ import {
   DialogFooter,
 } from './ui/dialog';
 import { Label } from './ui/label';
-import { Plus, Search, Pencil, Trash2, Phone, Mail } from 'lucide-react';
-// fetch proveedores from API
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Plus, Search, Pencil, Trash2, Phone, Mail, Building2 } from 'lucide-react';
 import type { Proveedor } from '../types';
 
 export function ProveedoresView() {
@@ -30,7 +30,24 @@ export function ProveedoresView() {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Estados para el formulario dividido (Teléfono y RIF)
+  const [tlfPrefijo, setTlfPrefijo] = useState('0412');
+  const [tlfNumero, setTlfNumero] = useState('');
+  
+  const [rifTipo, setRifTipo] = useState('V');
+  const [rifNumero, setRifNumero] = useState('');
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingProveedor, setEditingProveedor] = useState<Proveedor | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
   const API_BASE = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:5000';
+
+  // Listas estáticas para Venezuela
+  const prefijosTelefonicos = ['0412', '0414', '0424', '0416', '0426', '0422', '0212'];
+  const tiposDocumento = ['V', 'J', 'E', 'G'];
 
   useEffect(() => {
     const fetchProveedores = async () => {
@@ -49,51 +66,49 @@ export function ProveedoresView() {
     };
     fetchProveedores();
   }, []);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingProveedor, setEditingProveedor] = useState<Proveedor | null>(null);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const filteredProveedores = proveedores.filter(
     (p) =>
       p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.rif.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.ciudad.toLowerCase().includes(searchTerm.toLowerCase())
+      p.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) return <div>Loading proveedores...</div>;
-  if (error) return <div className="text-destructive">Error: {error}</div>;
+  // --- LOGICA DE GUARDADO ---
 
   const handleAddEdit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    
+    // Construir los valores compuestos
+    const telefonoFinal = `${tlfPrefijo}-${tlfNumero}`;
+    const rifFinal = `${rifTipo}-${rifNumero}`;
 
     const payload = {
       nombre: formData.get('nombre') as string,
-      rif: formData.get('rif') as string,
+      rif: rifFinal,
       contacto: (formData.get('contacto') as string) || null,
-      telefono: (formData.get('telefono') as string) || null,
+      telefono: telefonoFinal,
       email: (formData.get('email') as string) || null,
       direccion: (formData.get('direccion') as string) || null,
       ciudad: (formData.get('ciudad') as string) || null,
       activo: true,
     } as any;
 
-    // frontend validations: evitar rif/email duplicados
     const errors: Record<string, string> = {};
-    const rifLower = (payload.rif || '').trim().toLowerCase();
-    const emailLower = (payload.email || '').trim().toLowerCase();
-    if (!rifLower) {
-      errors.rif = 'RIF requerido';
+
+    // 1. Validar Teléfono (Exactamente 7 dígitos en el campo numérico)
+    if (!/^\d{7}$/.test(tlfNumero)) {
+      errors.telefono = 'El número debe tener exactamente 7 dígitos (ej: 1234567)';
     }
-    if (!emailLower) {
-      errors.email = 'Email requerido';
+
+    // 2. Validar Cédula / RIF (Mínimo 6 dígitos, positivos)
+    if (!rifNumero || rifNumero.length < 6) {
+      errors.rif = 'Debe tener al menos 6 dígitos.';
     }
-    // buscar duplicados en la lista actual de proveedores
-    const duplicateRif = proveedores.find((p) => p.rif.trim().toLowerCase() === rifLower && (!editingProveedor || p.id !== editingProveedor.id));
-    const duplicateEmail = proveedores.find((p) => (p.email || '').trim().toLowerCase() === emailLower && (!editingProveedor || p.id !== editingProveedor.id));
-    if (duplicateRif) errors.rif = 'Ya existe un proveedor con ese RIF';
-    if (duplicateEmail) errors.email = 'Ya existe un proveedor con ese correo';
+    if (Number(rifNumero) < 0) {
+      errors.rif = 'No puede ser negativo.';
+    }
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
@@ -104,48 +119,91 @@ export function ProveedoresView() {
     (async () => {
       try {
         if (editingProveedor) {
+          // UPDATE
           const res = await fetch(`${API_BASE}/api/suppliers/${editingProveedor.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...editingProveedor, ...payload }),
           });
-          if (!res.ok) throw new Error(`Update failed: ${res.status}`);
+          if (!res.ok) throw new Error(`Error update: ${res.status}`);
+          
+          // Actualizar localmente
           setProveedores(proveedores.map((p) => (p.id === editingProveedor.id ? { ...p, ...payload } : p)));
+          alert('Proveedor actualizado con éxito');
         } else {
+          // CREATE
           const res = await fetch(`${API_BASE}/api/suppliers`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
           });
-          if (!res.ok) throw new Error(`Create failed: ${res.status}`);
+          if (!res.ok) throw new Error(`Error create: ${res.status}`);
           const created = await res.json();
           setProveedores([created, ...proveedores]);
+          alert('Proveedor registrado con éxito');
         }
+
         setIsDialogOpen(false);
         setEditingProveedor(null);
       } catch (err: any) {
         console.error(err);
-        alert('Error al guardar proveedor: ' + (err.message || String(err)));
+        alert('Error al guardar: ' + err.message);
       }
     })();
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('¿Está seguro de eliminar este proveedor?')) {
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Está seguro de eliminar este proveedor?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/suppliers/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error(`Error al eliminar: ${res.status}`);
       setProveedores(proveedores.filter((p) => p.id !== id));
+    } catch (err: any) {
+      console.error(err);
+      alert('No se pudo eliminar el proveedor. ' + (err.message || ''));
     }
   };
 
-  const toggleActivo = (id: string) => {
-    setProveedores(
-      proveedores.map((p) => (p.id === id ? { ...p, activo: !p.activo } : p))
-    );
-  };
-
+  // Función para abrir el modal y preparar los datos divididos
   const openDialog = (proveedor?: Proveedor) => {
-    setEditingProveedor(proveedor || null);
+    if (proveedor) {
+      setEditingProveedor(proveedor);
+      
+      // Separar Teléfono (asumiendo formato "0412-1234567")
+      if (proveedor.telefono && proveedor.telefono.includes('-')) {
+        const [pref, num] = proveedor.telefono.split('-');
+        setTlfPrefijo(pref);
+        setTlfNumero(num);
+      } else {
+        setTlfPrefijo('0412');
+        setTlfNumero(proveedor.telefono || '');
+      }
+
+      // Separar RIF (asumiendo formato "J-123456")
+      if (proveedor.rif && proveedor.rif.includes('-')) {
+        const [tipo, num] = proveedor.rif.split('-');
+        setRifTipo(tipo);
+        setRifNumero(num);
+      } else {
+        setRifTipo('V');
+        setRifNumero(proveedor.rif || '');
+      }
+    } else {
+      setEditingProveedor(null);
+      // Valores por defecto
+      setTlfPrefijo('0412');
+      setTlfNumero('');
+      setRifTipo('V'); // Por defecto Jurídico para proveedores
+      setRifNumero('');
+    }
+    setFormErrors({});
     setIsDialogOpen(true);
   };
+
+  if (loading) return <div>Cargando proveedores...</div>;
+  if (error) return <div className="text-destructive">Error: {error}</div>;
 
   return (
     <div className="space-y-6">
@@ -153,7 +211,7 @@ export function ProveedoresView() {
         <div>
           <h1>Gestión de Proveedores</h1>
           <p className="text-muted-foreground">
-            Administra los proveedores del taller
+            Directorio de proveedores y contactos
           </p>
         </div>
         {permissions.proveedores.crear && (
@@ -170,7 +228,7 @@ export function ProveedoresView() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nombre, RIF o ciudad..."
+                placeholder="Buscar por nombre, RIF o email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -183,10 +241,10 @@ export function ProveedoresView() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>RIF</TableHead>
+                  <TableHead>Empresa / Nombre</TableHead>
+                  <TableHead>Cédula / RIF</TableHead>
                   <TableHead>Contacto</TableHead>
-                  <TableHead>Ciudad</TableHead>
+                  <TableHead>Ubicación</TableHead>
                   <TableHead>Estado</TableHead>
                   {(permissions.proveedores.editar || permissions.proveedores.eliminar) && (
                     <TableHead>Acciones</TableHead>
@@ -197,37 +255,37 @@ export function ProveedoresView() {
                 {filteredProveedores.map((proveedor) => (
                   <TableRow key={proveedor.id}>
                     <TableCell>
-                      <div>
-                        <p>{proveedor.nombre}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {proveedor.direccion}
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <div className="bg-primary/10 p-2 rounded-full">
+                          <Building2 className="size-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{proveedor.nombre}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Mail className="size-3" />
+                            {proveedor.email || 'Sin email'}
+                          </div>
+                        </div>
                       </div>
                     </TableCell>
-                    <TableCell>{proveedor.rif}</TableCell>
+                    <TableCell><Badge variant="outline">{proveedor.rif}</Badge></TableCell>
                     <TableCell>
                       <div>
-                        <p>{proveedor.contacto}</p>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <p className="text-sm">{proveedor.contacto}</p>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Phone className="size-3" />
                           {proveedor.telefono}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Mail className="size-3" />
-                          {proveedor.email}
-                        </div>
                       </div>
                     </TableCell>
-                    <TableCell>{proveedor.ciudad}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={proveedor.activo ? 'default' : 'secondary'}
-                        className={proveedor.activo ? 'bg-green-600' : ''}
-                        onClick={() =>
-                          permissions.proveedores.editar && toggleActivo(proveedor.id)
-                        }
-                        style={{ cursor: permissions.proveedores.editar ? 'pointer' : 'default' }}
-                      >
+                      <p className="text-sm">{proveedor.ciudad}</p>
+                      <p className="text-xs text-muted-foreground max-w-[150px] truncate">
+                        {proveedor.direccion}
+                      </p>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={proveedor.activo ? 'default' : 'secondary'} className={proveedor.activo ? 'bg-green-600' : ''}>
                         {proveedor.activo ? 'Activo' : 'Inactivo'}
                       </Badge>
                     </TableCell>
@@ -238,7 +296,8 @@ export function ProveedoresView() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              //onClick={() => openDialog(proveedor)}
+                              onClick={() => openDialog(proveedor)}
+                              className="text-blue-600 hover:text-blue-800"
                             >
                               <Pencil className="size-4" />
                             </Button>
@@ -247,9 +306,10 @@ export function ProveedoresView() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              //onClick={() => handleDelete(proveedor.id)}
+                              onClick={() => handleDelete(proveedor.id)}
+                              className="text-red-500 hover:text-red-700"
                             >
-                              <Trash2 className="size-4 text-destructive" />
+                              <Trash2 className="size-4" />
                             </Button>
                           )}
                         </div>
@@ -271,81 +331,122 @@ export function ProveedoresView() {
               {editingProveedor ? 'Editar Proveedor' : 'Agregar Nuevo Proveedor'}
             </DialogTitle>
             <DialogDescription>
-              Complete los datos del proveedor
+              Información de contacto de la empresa o proveedor.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddEdit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+              
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="nombre">Nombre de la Empresa</Label>
+                <Label htmlFor="nombre">Razón Social / Nombre</Label>
                 <Input
                   id="nombre"
                   name="nombre"
                   defaultValue={editingProveedor?.nombre}
+                  placeholder="Ej: Repuestos Caracas C.A."
                   required
                 />
               </div>
+
+              {/* CAMPO CÉDULA / RIF (MEJORADO) */}
               <div className="space-y-2">
-                <Label htmlFor="rif">RIF</Label>
-                <Input
-                  id="rif"
-                  name="rif"
-                  defaultValue={editingProveedor?.rif}
-                  required
-                />
+                <Label>Cédula / RIF</Label>
+                <div className="flex gap-2">
+                  <Select value={rifTipo} onValueChange={setRifTipo}>
+                    <SelectTrigger className="w-[70px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tiposDocumento.map((t) => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Número (Mín 6 dígitos)"
+                    value={rifNumero}
+                    onChange={(e) => setRifNumero(e.target.value)}
+                    required
+                    className="flex-1"
+                  />
+                </div>
                 {formErrors.rif && (
-                  <p className="text-destructive text-sm mt-1">{formErrors.rif}</p>
+                  <p className="text-destructive text-xs">{formErrors.rif}</p>
                 )}
               </div>
+
+              {/* CAMPO TELEFONO (MEJORADO) */}
               <div className="space-y-2">
-                <Label htmlFor="contacto">Nombre del Contacto</Label>
+                <Label>Teléfono</Label>
+                <div className="flex gap-2">
+                  <Select value={tlfPrefijo} onValueChange={setTlfPrefijo}>
+                    <SelectTrigger className="w-[90px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {prefijosTelefonicos.map((p) => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="number"
+                    placeholder="1234567"
+                    value={tlfNumero}
+                    onChange={(e) => setTlfNumero(e.target.value)}
+                    required
+                    className="flex-1"
+                  />
+                </div>
+                {formErrors.telefono && (
+                  <p className="text-destructive text-xs">{formErrors.telefono}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contacto">Persona de Contacto</Label>
                 <Input
                   id="contacto"
                   name="contacto"
-                  defaultValue={editingProveedor?.contacto}
-                  required
+                  defaultValue={editingProveedor?.contacto || ''}
+                  placeholder="Ej: Lic. Juan Pérez"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="telefono">Teléfono</Label>
-                <Input
-                  id="telefono"
-                  name="telefono"
-                  defaultValue={editingProveedor?.telefono}
-                  required
-                />
-              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email">Correo Electrónico</Label>
                 <Input
                   id="email"
                   name="email"
                   type="email"
-                  defaultValue={editingProveedor?.email}
+                  defaultValue={editingProveedor?.email || ''}
+                  placeholder="contacto@empresa.com"
                   required
                 />
-                {formErrors.email && (
-                  <p className="text-destructive text-sm mt-1">{formErrors.email}</p>
-                )}
               </div>
+
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="direccion">Dirección</Label>
+                <Label htmlFor="direccion">Dirección Fiscal</Label>
                 <Input
                   id="direccion"
                   name="direccion"
-                  defaultValue={editingProveedor?.direccion}
+                  defaultValue={editingProveedor?.direccion || ''}
                   required
                 />
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="ciudad">Ciudad</Label>
                 <Input
                   id="ciudad"
                   name="ciudad"
-                  defaultValue={editingProveedor?.ciudad}
+                  defaultValue={editingProveedor?.ciudad || ''}
                   required
                 />
               </div>
+
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
