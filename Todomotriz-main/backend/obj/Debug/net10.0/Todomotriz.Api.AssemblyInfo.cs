@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Todomotriz.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0dc71e646859e065d7ca77c26c37626aa220211c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5bdfe5d58e1bbf7b851f4218e36bc6952fd3c03e")]
 [assembly: System.Reflection.AssemblyProductAttribute("Todomotriz.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Todomotriz.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
