@@ -64,7 +64,8 @@ Sistema completo de gestión y punto de venta diseñado para talleres mecánicos
 ### Frontend
 - **Framework**: React 19 con TypeScript y Vite.
 - **Estilos & UI**: Tailwind CSS, Radix UI Primitives, Lucide React (iconografía).
-- **Componentes**: Tablas, Diálogos modales, Badges de estado, Selectores avanzados.
+- **Componentes**: Tablas con filtros y búsqueda, diálogos modales, avisos (toasts), tema claro/oscuro.
+- **Tipografía**: Barlow y Barlow Condensed (incluidas localmente, funcionan sin internet).
 - **Manejo de Estado**: React Context API (`AuthContext`), LocalStorage para persistencia de sesión.
 
 ---
@@ -189,8 +190,6 @@ Todomotriz-main/
 ├── backend/                   # Proyecto Backend (.NET Web API)
 │   ├── Controllers/           # Controladores REST (Auth, Invoices, Products, Suppliers, Users)
 │   ├── Data/                  # DbContext (EF Core) y Seeder de datos iniciales
-│   │   ├── AppDbContext.cs
-│   │   └── DbSeeder.cs
 │   ├── Models/                # Entidades de dominio (User, Product, Supplier, Invoice, InvoiceItem)
 │   ├── Repositories/          # Acceso a datos: IRepository genérico + repositorios por entidad
 │   ├── Services/              # Lógica de negocio (interfaces I*Service + implementaciones)
@@ -200,24 +199,26 @@ Todomotriz-main/
 └── frontend/                  # Proyecto Frontend (React 19 + TypeScript + Vite)
     ├── public/                # Archivos estáticos
     ├── src/
-    │   ├── pages/             # Pantallas de la aplicación
-    │   │   ├── LoginPage.tsx        # Inicio de sesión
-    │   │   ├── Dashboard.tsx        # Panel de métricas y alertas
-    │   │   ├── InventarioView.tsx   # Control de stock, precios y almacén
-    │   │   ├── FacturacionView.tsx  # Emisión, anulación, cobro e impresión de facturas
-    │   │   ├── ProveedoresView.tsx  # Directorio y gestión de proveedores
-    │   │   └── UsuariosView.tsx     # Gestión de usuarios del sistema
+    │   ├── pages/             # Pantallas, cada una en su carpeta con sus diálogos
+    │   │   ├── LoginPage.tsx
+    │   │   ├── dashboard/     # Métricas, gráfico de ventas de 7 días y alertas
+    │   │   ├── inventario/    # Listado + formulario de producto
+    │   │   ├── facturacion/   # Listado, formulario con carrito y comprobante imprimible
+    │   │   ├── proveedores/   # Listado + formulario de proveedor
+    │   │   └── usuarios/      # Listado, formulario y tabla de roles
     │   ├── components/
-    │   │   ├── layout/        # DashboardLayout: sidebar, navegación y header de usuario
-    │   │   └── ui/            # Componentes base reutilizables (botones, modales, inputs, tablas)
-    │   ├── contexts/          # Contextos de React (AuthContext con matriz RBAC)
-    │   ├── lib/               # Utilidades compartidas (api.ts: URL base del backend)
-    │   ├── styles/            # Variables y estilos globales
+    │   │   ├── common/        # Piezas compartidas: encabezados, paneles, filtros, estados, campos
+    │   │   ├── feedback/      # Avisos (toasts) y diálogos de confirmación
+    │   │   ├── layout/        # Barra lateral, menú móvil y logo
+    │   │   └── ui/            # Componentes base (botón, input, select, tabla, diálogo)
+    │   ├── contexts/          # AuthContext con la matriz de permisos (RBAC)
+    │   ├── lib/               # API, formatos, constantes, tema claro/oscuro, carga de datos
     │   ├── types/             # Interfaces TypeScript (Factura, Producto, Usuario, etc.)
-    │   ├── App.tsx            # Navegación condicional según autenticación
-    │   └── main.tsx           # Punto de entrada de la aplicación
+    │   ├── App.tsx            # Navegación según autenticación
+    │   ├── index.css          # Tokens de diseño (colores claro/oscuro) y estilos de impresión
+    │   └── main.tsx           # Punto de entrada (fuentes y tema)
     ├── package.json           # Dependencias de npm y scripts
-    ├── tailwind.config.ts     # Configuración de estilos y tema Tailwind
+    ├── tailwind.config.ts     # Tema de Tailwind (lee los tokens de index.css)
     └── vite.config.ts         # Configuración del empaquetador Vite
 ```
 
