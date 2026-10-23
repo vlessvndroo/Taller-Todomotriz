@@ -1,6 +1,6 @@
 ## Ejecutar localmente
 
-Asegúrate de tener .NET 8 SDK instalado.
+Asegúrate de tener .NET 10 SDK instalado.
 Desde PowerShell, en la carpeta `backend`:
 
 ```powershell

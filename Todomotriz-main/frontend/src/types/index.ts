@@ -7,6 +7,8 @@ export interface User {
   rol: UserRole;
   activo: boolean;
   telefono?: string;
+  /** El backend la devuelve en texto plano; solo el admin la ve */
+  password?: string;
   createdAt: string;
 }
 
@@ -33,7 +35,6 @@ export interface Proveedor {
   id: string;
   nombre: string;
   rif: string;
-  cedula: string;
   contacto: string;
   telefono: string;
   email: string;

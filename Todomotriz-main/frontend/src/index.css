@@ -1,44 +1,130 @@
-/* Directivas Tailwind primero, luego import de estilos globales */
-@import "./styles/globals.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Tokens de diseño de Todomotriz (tripletas HSL para Tailwind).
+ * Paleta de marca: negro carbón #120F08, dorado #FDDC7B y ocre #E6BA71,
+ * con un ámbar más intenso como color de acción.
+ */
+@layer base {
+  :root {
+    --background: 40 23% 96%;
+    --foreground: 36 30% 7%;
+    --card: 0 0% 100%;
+    --card-foreground: 36 30% 7%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 36 30% 7%;
 
+    --primary: 39 92% 52%;
+    --primary-foreground: 36 30% 7%;
+    --secondary: 40 18% 91%;
+    --secondary-foreground: 36 30% 7%;
+    --muted: 40 16% 93%;
+    --muted-foreground: 30 5% 38%;
+    --accent: 41 45% 91%;
+    --accent-foreground: 36 30% 7%;
+    --destructive: 4 72% 48%;
+    --destructive-foreground: 0 0% 100%;
 
+    --success: 152 58% 32%;
+    --warning: 30 92% 42%;
+    --info: 212 72% 44%;
+    /* Barras de gráficos (validado: contraste >= 3:1 sobre la tarjeta) */
+    --chart: 30 92% 42%;
 
-/* 2. Tus estilos globales pueden ir después */
-:root {
-  --color-ochre: #E6BA71; 
-  --color-yellow: #FDDC7B; /* El dorado */
-  --color-black: #120F08;
-  --color-gray: #666564;
-  --color-white: #FFFFFF;
+    --border: 37 16% 87%;
+    --input: 37 14% 83%;
+    --ring: 39 92% 46%;
+    --radius: 0.625rem;
 
-  /* Colores de shadcn/ui (ejemplo, puedes borrarlos si no los usas) */
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --primary: 222.2 47.4% 11.2%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --ring: 215 20.2% 65.1%;
-  --radius: 0.5rem;
+    --sidebar: 36 28% 7%;
+    --sidebar-foreground: 40 22% 88%;
+    --sidebar-muted: 36 8% 56%;
+    --sidebar-accent: 36 16% 13%;
+    --sidebar-border: 36 14% 15%;
+  }
+
+  .dark {
+    --background: 33 14% 6%;
+    --foreground: 40 18% 92%;
+    --card: 33 12% 9%;
+    --card-foreground: 40 18% 92%;
+    --popover: 33 12% 10%;
+    --popover-foreground: 40 18% 92%;
+
+    --primary: 41 92% 57%;
+    --primary-foreground: 36 30% 7%;
+    --secondary: 33 9% 15%;
+    --secondary-foreground: 40 18% 92%;
+    --muted: 33 9% 13%;
+    --muted-foreground: 36 9% 62%;
+    --accent: 36 18% 16%;
+    --accent-foreground: 40 18% 92%;
+    --destructive: 4 72% 58%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 48% 48%;
+    --warning: 36 92% 56%;
+    --info: 212 85% 66%;
+    --chart: 36 82% 44%;
+
+    --border: 33 9% 18%;
+    --input: 33 9% 22%;
+    --ring: 41 92% 57%;
+
+    --sidebar: 33 18% 4%;
+    --sidebar-foreground: 40 18% 86%;
+    --sidebar-muted: 36 8% 52%;
+    --sidebar-accent: 33 14% 10%;
+    --sidebar-border: 33 12% 12%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1, h2, h3 {
+    @apply font-display tracking-tight;
+  }
 }
 
-body {
-  font-family: Arial, sans-serif;
-  /* background-color: var(--color-yellow); */ /* Tailwind ahora controlará el fondo */
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Impresión: solo se imprime el bloque marcado con .print-area (ej. la factura) */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0;
+    color: #000;
+    background: #fff;
+  }
+  .no-print {
+    display: none !important;
+  }
 }

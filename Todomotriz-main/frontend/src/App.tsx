@@ -1,36 +1,24 @@
 import { useState } from 'react';
-import { AuthProvider, useAuth } from "./contexts/AuthContext.tsx";
-import { LoginPage } from "./components/LoginPage.tsx";
-import { DashboardLayout } from './components/DashboardLayout.tsx';
-import { Dashboard } from './components/Dashboard.tsx';
-import { InventarioView } from './components/InventarioView.tsx';
-import { FacturacionView } from './components/FacturacionView.tsx';
-import { ProveedoresView } from './components/ProveedoresView.tsx';
-import { UsuariosView } from './components/UsuariosView.tsx';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { FeedbackProvider } from './components/feedback/FeedbackProvider';
+import { DashboardLayout, type ViewId } from './components/layout/DashboardLayout';
+import { LoadingState } from './components/common/States';
+import { LoginPage } from './pages/LoginPage';
+import { Dashboard } from './pages/dashboard/Dashboard';
+import { InventarioView } from './pages/inventario/InventarioView';
+import { FacturacionView } from './pages/facturacion/FacturacionView';
+import { ProveedoresView } from './pages/proveedores/ProveedoresView';
+import { UsuariosView } from './pages/usuarios/UsuariosView';
 
 function AppContent() {
   const { user, isLoading } = useAuth();
-  const [currentView, setCurrentView] = useState('dashboard');
+  const [currentView, setCurrentView] = useState<ViewId>('dashboard');
 
-  if (isLoading) {
-    return (
-      <div className="size-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin size-8 border-4 border-primary border-t-transparent rounded-full mb-4 mx-auto"></div>
-          <p className="text-muted-foreground">Cargando...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <LoginPage />;
-  }
+  if (isLoading) return <LoadingState />;
+  if (!user) return <LoginPage />;
 
   const renderView = () => {
     switch (currentView) {
-      case 'dashboard':
-        return <Dashboard />;
       case 'inventario':
         return <InventarioView />;
       case 'facturacion':
@@ -40,7 +28,7 @@ function AppContent() {
       case 'usuarios':
         return <UsuariosView />;
       default:
-        return <Dashboard />;
+        return <Dashboard onNavigate={setCurrentView} />;
     }
   };
 
@@ -54,7 +42,9 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <FeedbackProvider>
+        <AppContent />
+      </FeedbackProvider>
     </AuthProvider>
   );
 }

@@ -28,11 +28,8 @@ public class InvoiceService : IInvoiceService
         return invoice;
     }
 
-    public Task UpdateAsync(Invoice invoice)
-    {
-        // For simplicity we update invoice and rely on EF to track items.
-        return _repo.UpdateAsync(invoice);
-    }
+    public Task UpdateAsync(Invoice invoice, List<InvoiceItem>? replacementItems = null)
+        => _repo.UpdateWithItemsAsync(invoice, replacementItems);
 
     public Task DeleteAsync(Guid id) => _repo.DeleteAsync(id);
 }

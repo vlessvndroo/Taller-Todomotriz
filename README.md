@@ -64,7 +64,8 @@ Sistema completo de gestión y punto de venta diseñado para talleres mecánicos
 ### Frontend
 - **Framework**: React 19 con TypeScript y Vite.
 - **Estilos & UI**: Tailwind CSS, Radix UI Primitives, Lucide React (iconografía).
-- **Componentes**: Tablas, Diálogos modales, Badges de estado, Selectores avanzados.
+- **Componentes**: Tablas con filtros y búsqueda, diálogos modales, avisos (toasts), tema claro/oscuro.
+- **Tipografía**: Barlow y Barlow Condensed (incluidas localmente, funcionan sin internet).
 - **Manejo de Estado**: React Context API (`AuthContext`), LocalStorage para persistencia de sesión.
 
 ---
@@ -185,41 +186,45 @@ npm run dev
 Todomotriz-main/
 ├── Todomotriz-main.sln        # Solución de Visual Studio para el proyecto .NET
 ├── start.bat                  # Script para arranque simultáneo de Backend y Frontend
-├── package.json               # Configuración auxiliar del workspace
 │
-├── backend/                   # Proyecto Backend (.NET Core Web API)
+├── backend/                   # Proyecto Backend (.NET Web API)
 │   ├── Controllers/           # Controladores REST (Auth, Invoices, Products, Suppliers, Users)
-│   ├── Data/                  # Configuración DbContext (EF Core) y Seeder de datos iniciales
-│   │   ├── AppDbContext.cs
-│   │   └── DbSeeder.cs
+│   ├── Data/                  # DbContext (EF Core) y Seeder de datos iniciales
 │   ├── Models/                # Entidades de dominio (User, Product, Supplier, Invoice, InvoiceItem)
-│   ├── Interfaces/            # Contratos de repositorios y servicios
-│   ├── Repositories/          # Implementación de acceso a datos (Patrón Repositorio)
-│   ├── Services/              # Capa de lógica de negocio
-│   ├── Todomotriz.Api.csproj  # Configuración y paquetes NuGet del proyecto .NET
+│   ├── Repositories/          # Acceso a datos: IRepository genérico + repositorios por entidad
+│   ├── Services/              # Lógica de negocio (interfaces I*Service + implementaciones)
 │   ├── Program.cs             # Configuración de dependencias, CORS, DB y middleware
-│   └── todomotriz.db          # Base de datos SQLite (se genera automáticamente)
+│   └── Todomotriz.Api.csproj  # Configuración y paquetes NuGet del proyecto .NET
 │
 └── frontend/                  # Proyecto Frontend (React 19 + TypeScript + Vite)
     ├── public/                # Archivos estáticos
     ├── src/
-    │   ├── components/        # Vistas principales y componentes de interfaz
-    │   │   ├── Dashboard.tsx        # Panel de métricas y alertas
-    │   │   ├── DashboardLayout.tsx  # Barra de navegación, sidebar y header de usuario
-    │   │   ├── FacturacionView.tsx  # Emisión, anulación, cobro e impresión de facturas
-    │   │   ├── InventarioView.tsx   # Control de stock, precios y almacén
-    │   │   ├── ProveedoresView.tsx  # Directorio y gestión de proveedores
-    │   │   ├── UsuariosView.tsx     # Gestión de usuarios del sistema
-    │   │   ├── LoginPage.tsx        # Pantalla de inicio de sesión
-    │   │   └── ui/                  # Componentes base reutilizables (Botones, Modales, Inputs)
-    │   ├── contexts/          # Contextos de React (AuthContext con matriz RBAC)
-    │   ├── types/             # Definición de interfaces TypeScript (Factura, Producto, Usuario, etc.)
-    │   ├── App.tsx            # Enrutador condicional según autenticación y navegación
-    │   └── main.tsx           # Punto de entrada de la aplicación Vite
+    │   ├── pages/             # Pantallas, cada una en su carpeta con sus diálogos
+    │   │   ├── LoginPage.tsx
+    │   │   ├── dashboard/     # Métricas, gráfico de ventas de 7 días y alertas
+    │   │   ├── inventario/    # Listado + formulario de producto
+    │   │   ├── facturacion/   # Listado, formulario con carrito y comprobante imprimible
+    │   │   ├── proveedores/   # Listado + formulario de proveedor
+    │   │   └── usuarios/      # Listado, formulario y tabla de roles
+    │   ├── components/
+    │   │   ├── common/        # Piezas compartidas: encabezados, paneles, filtros, estados, campos
+    │   │   ├── feedback/      # Avisos (toasts) y diálogos de confirmación
+    │   │   ├── layout/        # Barra lateral, menú móvil y logo
+    │   │   └── ui/            # Componentes base (botón, input, select, tabla, diálogo)
+    │   ├── contexts/          # AuthContext con la matriz de permisos (RBAC)
+    │   ├── lib/               # API, formatos, constantes, tema claro/oscuro, carga de datos
+    │   ├── types/             # Interfaces TypeScript (Factura, Producto, Usuario, etc.)
+    │   ├── App.tsx            # Navegación según autenticación
+    │   ├── index.css          # Tokens de diseño (colores claro/oscuro) y estilos de impresión
+    │   └── main.tsx           # Punto de entrada (fuentes y tema)
     ├── package.json           # Dependencias de npm y scripts
-    ├── tailwind.config.ts     # Configuración de estilos y tema Tailwind
+    ├── tailwind.config.ts     # Tema de Tailwind (lee los tokens de index.css)
     └── vite.config.ts         # Configuración del empaquetador Vite
 ```
+
+> La base de datos SQLite (`backend/todomotriz.db`) no se versiona: se crea y precarga automáticamente al iniciar la API por primera vez.
+>
+> La URL del backend se puede cambiar creando `frontend/.env` con `VITE_API_URL=http://otra-url:puerto`.
 
 ---
 

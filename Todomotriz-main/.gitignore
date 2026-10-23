@@ -1,62 +1,45 @@
-# =================================================================
-# Archivos Generales (SO, Editores y Logs)
-# Ignora estos archivos en CUALQUIER carpeta del proyecto
-# =================================================================
-
-# Archivos de Sistema Operativo
+# ================================================================
+# General (sistema operativo, editores y logs)
+# ================================================================
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Archivos del Editor de Código
 .idea/
 .vscode/
+.history/
 *.suo
-*.ntvs*
-*.njsproj
-*.sln
+*.user
 *.swp
 
-# Archivos de Log
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-lerna-debug.log*
 
-# =================================================================
-# Frontend (React)
-# =================================================================
+# Variables de entorno
+.env
+.env.*
+!.env.example
 
-# Dependencias
-frontend/node_modules
+# ================================================================
+# Frontend (React + Vite)
+# ================================================================
+node_modules/
+dist/
+dist-ssr/
+build/
+coverage/
+*.tsbuildinfo
 
-# Archivos de build/producción
-frontend/build
-frontend/dist
-frontend/dist-ssr
+# ================================================================
+# Backend (.NET)
+# ================================================================
+bin/
+obj/
+logs/
 
-# Variables de entorno (¡MUY IMPORTANTE!)
-frontend/.env
-frontend/.env.local
-frontend/.env.development.local
-frontend/.env.test.local
-frontend/.env.production.local
-
-# Reportes de tests
-frontend/coverage
-
-# =================================================================
-# Backend 
-# =================================================================
-
-backend/bin
-backend/obj
-backend/todomotriz.db
-backend/todomotriz.db-shm
-backend/todomotriz.db-wal
-backend/.env
-backend/logs
-backend/coverage
-backend/*.log
-
+# Base de datos SQLite local (se crea y precarga al iniciar la API)
+*.db
+*.db-shm
+*.db-wal

@@ -48,6 +48,8 @@ public class UsersController : ControllerBase
         existing.Rol = user.Rol;
         existing.Activo = user.Activo;
         existing.Telefono = user.Telefono;
+        // Solo se cambia la contraseña si se envió una nueva
+        if (!string.IsNullOrWhiteSpace(user.Password)) existing.Password = user.Password;
 
         await _service.UpdateAsync(existing);
         return NoContent();
