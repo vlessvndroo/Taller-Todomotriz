@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { AuthUser, UserRole, RolePermissions } from '../types';
-import { API_BASE } from '../lib/api';
+import { api } from '../lib/api';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -38,7 +38,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Ajusta el puerto si tu backend corre en el 5001 o 5000
 
   useEffect(() => {
     // Recuperar sesión al recargar
@@ -46,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (savedUser) {
       try {
         setUser(JSON.parse(savedUser));
-      } catch (e) {
+      } catch {
         localStorage.removeItem('authUser');
       }
     }
@@ -55,18 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      // PETICIÓN REAL AL BACKEND
-      const res = await fetch(`${API_BASE}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || 'Error al iniciar sesión');
-      }
+      const data = await api<AuthUser>('/auth/login', 'POST', { email, password });
 
       // Validar rol recibido (convertimos a minúsculas por si acaso viene "Admin")
       const rolRecibido = data.rol.toLowerCase() as UserRole;
@@ -105,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

@@ -64,6 +64,17 @@ public class InvoicesController : ControllerBase
         var existing = await _invoiceService.GetByIdAsync(id);
         if (existing == null) return NotFound();
 
+        // Movimiento de stock: se devuelve lo que la factura tenía descontado
+        // y se descuenta lo que queda después de la edición (nada si se anula)
+        var stockDelta = new Dictionary<Guid, int>();
+        if (existing.Estado != "anulada")
+            foreach (var item in existing.Items)
+                stockDelta[item.ProductoId] = stockDelta.GetValueOrDefault(item.ProductoId) + item.Cantidad;
+        var newItems = invoice.Items != null && invoice.Items.Any() ? invoice.Items : existing.Items;
+        if (invoice.Estado != "anulada")
+            foreach (var item in newItems)
+                stockDelta[item.ProductoId] = stockDelta.GetValueOrDefault(item.ProductoId) - item.Cantidad;
+
         // Actualizamos campos principales
         existing.NumeroFactura = invoice.NumeroFactura;
         existing.Fecha = invoice.Fecha;
@@ -79,23 +90,18 @@ public class InvoicesController : ControllerBase
         existing.Observaciones = invoice.Observaciones;
         existing.CreadoPor = invoice.CreadoPor;
 
-        // Reemplazar items (Cuidado: esto asume que 'invoice' trae la lista completa)
-        // Si el frontend manda lista vacía al pagar, esto borraría los items.
-        // Por eso en el frontend corregimos para enviar siempre la lista completa.
-        if (invoice.Items != null && invoice.Items.Any())
-        {
-            existing.Items = invoice.Items.Select(it =>
-            {
-                if (it.Id == Guid.Empty) it.Id = Guid.NewGuid();
-                it.InvoiceId = existing.Id;
-                return it;
-            }).ToList();
-        }
-        // Nota: Si invoice.Items viene vacío (ej: solo actualizando estado), 
-        // idealmente no deberíamos borrar los items existentes.
-        // Pero con la corrección del frontend, siempre vendrán.
+        // Si la petición trae items se reemplazan; si viene vacía (ej. solo cambio de estado) se conservan
+        var replacementItems = invoice.Items != null && invoice.Items.Any() ? invoice.Items : null;
+        await _invoiceService.UpdateAsync(existing, replacementItems);
 
-        await _invoiceService.UpdateAsync(existing);
+        foreach (var (productId, delta) in stockDelta.Where(d => d.Value != 0))
+        {
+            var product = await _productService.GetByIdAsync(productId);
+            if (product == null) continue;
+            product.Cantidad = Math.Max(0, product.Cantidad + delta);
+            await _productService.UpdateAsync(product);
+        }
+
         return NoContent();
     }
 

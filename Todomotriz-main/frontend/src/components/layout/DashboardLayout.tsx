@@ -1,152 +1,202 @@
-import { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import React, { useState } from 'react';
 import {
-  LayoutDashboard,
-  Package,
+  ChevronsLeft,
+  ChevronsRight,
   FileText,
-  Truck,
-  Users,
+  LayoutDashboard,
   LogOut,
   Menu,
+  Moon,
+  Package,
+  Sun,
+  Truck,
+  Users,
   X,
-  Wrench,
 } from 'lucide-react';
-import { Button } from '../ui/button';
+import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../lib/theme';
+import { initials } from '../../lib/format';
+import { ROLES } from '../../lib/constants';
+import type { RolePermissions } from '../../types';
 import { cn } from '../ui/utils';
-import React from 'react';
+import { Logo } from './Logo';
+
+export type ViewId = 'dashboard' | 'inventario' | 'facturacion' | 'proveedores' | 'usuarios';
+
+interface NavItem {
+  id: ViewId;
+  label: string;
+  icon: React.ReactNode;
+  requiredPermission?: keyof RolePermissions;
+}
+
+const navItems: NavItem[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
+  { id: 'inventario', label: 'Inventario', icon: <Package />, requiredPermission: 'inventario' },
+  { id: 'facturacion', label: 'Facturación', icon: <FileText />, requiredPermission: 'facturacion' },
+  { id: 'proveedores', label: 'Proveedores', icon: <Truck />, requiredPermission: 'proveedores' },
+  { id: 'usuarios', label: 'Usuarios', icon: <Users />, requiredPermission: 'usuarios' },
+];
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  currentView: string;
-  onNavigate: (view: string) => void;
+  currentView: ViewId;
+  onNavigate: (view: ViewId) => void;
 }
 
-interface NavItem {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  requiredPermission?: string;
-}
-
-export function DashboardLayout({
-  children,
-  currentView,
-  onNavigate,
-}: DashboardLayoutProps) {
+export function DashboardLayout({ children, currentView, onNavigate }: DashboardLayoutProps) {
   const { user, logout, permissions } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { theme, toggleTheme } = useTheme();
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navItems: NavItem[] = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: <LayoutDashboard className="size-5" />,
-    },
-    {
-      id: 'inventario',
-      label: 'Inventario',
-      icon: <Package className="size-5" />,
-      requiredPermission: 'inventario',
-    },
-    {
-      id: 'facturacion',
-      label: 'Facturación',
-      icon: <FileText className="size-5" />,
-      requiredPermission: 'facturacion',
-    },
-    {
-      id: 'proveedores',
-      label: 'Proveedores',
-      icon: <Truck className="size-5" />,
-      requiredPermission: 'proveedores',
-    },
-    {
-      id: 'usuarios',
-      label: 'Usuarios',
-      icon: <Users className="size-5" />,
-      requiredPermission: 'usuarios',
-    },
-  ];
+  const visibleItems = navItems.filter((item) => !item.requiredPermission || permissions[item.requiredPermission].ver);
 
-  const filteredNavItems = navItems.filter((item) => {
-    if (!item.requiredPermission) return true;
-    // Cast the string key to the keys of the permissions object so TS can validate the index
-    return permissions[item.requiredPermission as keyof typeof permissions]?.ver;
-  });
+  const navigate = (view: ViewId) => {
+    onNavigate(view);
+    setMobileOpen(false);
+  };
+
+  const sidebar = (isMobile: boolean) => {
+    const compact = collapsed && !isMobile;
+    return (
+      <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
+        <div className={cn('flex h-[72px] items-center border-b border-sidebar-border px-4', compact && 'justify-center px-0')}>
+          <Logo compact={compact} />
+          {isMobile && (
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="ml-auto rounded-lg p-2 text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              aria-label="Cerrar menú"
+            >
+              <X className="size-5" />
+            </button>
+          )}
+        </div>
+
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+          {!compact && (
+            <p className="px-3 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-sidebar-muted">Operación</p>
+          )}
+          {visibleItems.map((item) => {
+            const active = currentView === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => navigate(item.id)}
+                title={compact ? item.label : undefined}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors [&_svg]:size-5 [&_svg]:shrink-0',
+                  compact && 'justify-center px-0',
+                  active
+                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                    : 'text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground',
+                )}
+              >
+                {item.icon}
+                {!compact && <span>{item.label}</span>}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="space-y-2 border-t border-sidebar-border p-3">
+          <div className={cn('flex items-center gap-3 rounded-xl bg-sidebar-accent p-2.5', compact && 'justify-center bg-transparent p-0')}>
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/20 font-display text-sm font-bold text-primary">
+              {initials(user?.nombre)}
+            </div>
+            {!compact && (
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{user?.nombre}</p>
+                <p className="text-xs text-sidebar-muted">{user ? ROLES[user.rol].label : ''}</p>
+              </div>
+            )}
+          </div>
+
+          <div className={cn('flex gap-2', compact && 'flex-col')}>
+            <SidebarButton onClick={toggleTheme} label={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'} compact>
+              {theme === 'dark' ? <Sun /> : <Moon />}
+            </SidebarButton>
+            {!isMobile && (
+              <SidebarButton
+                onClick={() => setCollapsed(!collapsed)}
+                label={collapsed ? 'Expandir menú' : 'Contraer menú'}
+                compact
+              >
+                {collapsed ? <ChevronsRight /> : <ChevronsLeft />}
+              </SidebarButton>
+            )}
+            <SidebarButton onClick={logout} label="Cerrar sesión" compact={compact} className="flex-1">
+              <LogOut />
+            </SidebarButton>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex h-screen bg-background">
-      {/* Sidebar */}
+      {/* Escritorio */}
       <aside
         className={cn(
-          'bg-card border-r border-border transition-all duration-300 flex flex-col',
-          sidebarOpen ? 'w-64' : 'w-0 md:w-20'
+          'no-print hidden shrink-0 transition-[width] duration-300 lg:block',
+          collapsed ? 'w-[76px]' : 'w-64',
         )}
       >
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          {sidebarOpen && (
-            <div className="flex items-center gap-2">
-              <div className="bg-primary p-2 rounded-lg">
-                <Wrench className="size-5 text-primary-foreground" />
-              </div>
-              <div>
-                <h2 className="text-sm">Taller Automotriz</h2>
-              </div>
-            </div>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="ml-auto"
-          >
-            {sidebarOpen ? <X className="size-4" /> : <Menu className="size-4" />}
-          </Button>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {filteredNavItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
-              className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
-                currentView === item.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-accent text-foreground'
-              )}
-            >
-              {item.icon}
-              {sidebarOpen && <span>{item.label}</span>}
-            </button>
-          ))}
-        </nav>
-
-        <div className="p-4 border-t border-border">
-          {sidebarOpen && (
-            <div className="mb-3 px-3">
-              <p className="text-xs text-muted-foreground">Usuario</p>
-              <p className="text-sm truncate">{user?.nombre}</p>
-              <p className="text-xs text-muted-foreground capitalize">{user?.rol}</p>
-            </div>
-          )}
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={logout}
-          >
-            <LogOut className="size-4" />
-            {sidebarOpen && <span className="ml-2">Cerrar Sesión</span>}
-          </Button>
-        </div>
+        {sidebar(false)}
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <div className="p-6 md:p-8">
-          {children}
+      {/* Móvil: menú deslizable */}
+      {mobileOpen && (
+        <div className="no-print fixed inset-0 z-40 lg:hidden">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={() => setMobileOpen(false)} />
+          <aside className="absolute inset-y-0 left-0 w-72 shadow-2xl animate-in slide-in-from-left duration-200">
+            {sidebar(true)}
+          </aside>
         </div>
-      </main>
+      )}
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="no-print flex h-16 shrink-0 items-center gap-3 border-b bg-sidebar px-4 text-sidebar-foreground lg:hidden">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="rounded-lg p-2 hover:bg-sidebar-accent"
+            aria-label="Abrir menú"
+          >
+            <Menu className="size-5" />
+          </button>
+          <Logo />
+        </header>
+
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">{children}</div>
+        </main>
+      </div>
     </div>
+  );
+}
+
+function SidebarButton({
+  children,
+  label,
+  compact,
+  className,
+  ...props
+}: React.ComponentProps<'button'> & { label: string; compact?: boolean }) {
+  return (
+    <button
+      title={label}
+      aria-label={label}
+      className={cn(
+        'flex h-9 items-center justify-center gap-2 rounded-lg border border-sidebar-border px-2.5 text-sm font-semibold text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground [&_svg]:size-4',
+        className,
+      )}
+      {...props}
+    >
+      {children}
+      {!compact && <span>{label}</span>}
+    </button>
   );
 }
