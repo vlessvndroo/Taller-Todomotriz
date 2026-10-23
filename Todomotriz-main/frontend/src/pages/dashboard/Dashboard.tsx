@@ -17,7 +17,7 @@ interface DashboardData extends Record<string, unknown> {
   productos: ProductoInventario[];
   facturas: Factura[];
   proveedores: Proveedor[];
-  usuarios: User[];
+  usuarios?: User[];
 }
 
 export function Dashboard({ onNavigate }: { onNavigate: (view: ViewId) => void }) {
@@ -26,13 +26,15 @@ export function Dashboard({ onNavigate }: { onNavigate: (view: ViewId) => void }
     productos: '/products',
     facturas: '/invoices',
     proveedores: '/suppliers',
-    usuarios: '/users',
+    // La lista de usuarios solo está disponible para administrador y gerente
+    ...(permissions.usuarios.ver ? { usuarios: '/users' } : {}),
   });
 
   if (loading) return <LoadingState label="Cargando dashboard..." />;
   if (error || !data) return <ErrorState message={error ?? ''} onRetry={reload} />;
 
   const { productos, facturas, proveedores, usuarios } = data;
+  const stockBajoCount = productos.filter((p) => p.cantidad <= p.stockMinimo).length;
   const now = new Date();
   const pagadas = facturas.filter((f) => f.estado === 'pagada');
 
@@ -83,14 +85,23 @@ export function Dashboard({ onNavigate }: { onNavigate: (view: ViewId) => void }
       view: 'proveedores' as const,
       allowed: permissions.proveedores.ver,
     },
-    {
-      label: 'Usuarios activos',
-      value: usuarios.filter((u) => u.activo).length,
-      detail: `de ${usuarios.length} registrados`,
-      icon: <Users />,
-      view: 'usuarios' as const,
-      allowed: permissions.usuarios.ver,
-    },
+    usuarios
+      ? {
+          label: 'Usuarios activos',
+          value: usuarios.filter((u) => u.activo).length,
+          detail: `de ${usuarios.length} registrados`,
+          icon: <Users />,
+          view: 'usuarios' as const,
+          allowed: permissions.usuarios.ver,
+        }
+      : {
+          label: 'Stock bajo',
+          value: stockBajoCount,
+          detail: 'productos por reponer',
+          icon: <AlertTriangle />,
+          view: 'inventario' as const,
+          allowed: permissions.inventario.ver,
+        },
   ];
 
   const firstName = user?.nombre.split(' ')[0] ?? '';

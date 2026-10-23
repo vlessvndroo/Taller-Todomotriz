@@ -62,8 +62,9 @@ export function InventarioView() {
   const handleSave = async (payload: ProductoPayload) => {
     try {
       if (editing) {
-        await api(`/products/${editing.id}`, 'PUT', { ...editing, ...payload });
-        setProductos(productos.map((p) => (p.id === editing.id ? { ...p, ...payload } : p)));
+        await api(`/products/${editing.id}`, 'PUT', payload);
+        const updated = await api<ProductoInventario>(`/products/${editing.id}`);
+        setProductos(productos.map((p) => (p.id === editing.id ? updated : p)));
         toast('Producto actualizado correctamente');
       } else {
         const created = await api<ProductoInventario>('/products', 'POST', payload);
@@ -90,7 +91,7 @@ export function InventarioView() {
       setProductos(productos.filter((p) => p.id !== producto.id));
       toast('Producto eliminado');
     } catch (err) {
-      toast(`Error al eliminar producto: ${errorMessage(err)}`, 'error');
+      toast(errorMessage(err), 'error');
     }
   };
 
@@ -223,7 +224,7 @@ export function InventarioView() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         producto={editing}
-        proveedores={data.proveedores.map((p) => p.nombre)}
+        proveedores={data.proveedores}
         onSave={handleSave}
       />
     </div>

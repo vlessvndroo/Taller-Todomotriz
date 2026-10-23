@@ -7,8 +7,6 @@ export interface User {
   rol: UserRole;
   activo: boolean;
   telefono?: string;
-  /** El backend la devuelve en texto plano; solo el admin la ve */
-  password?: string;
   createdAt: string;
 }
 
@@ -26,7 +24,10 @@ export interface ProductoInventario {
   precioCompra: number;
   precioVenta: number;
   stockMinimo: number;
-  proveedor: string;
+  /** Vínculo real con el proveedor */
+  proveedorId: string | null;
+  /** Nombre del proveedor (copia que mantiene el backend) */
+  proveedor: string | null;
   ubicacion: string;
   ultimaActualizacion: string;
 }

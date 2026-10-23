@@ -1,12 +1,13 @@
-using Todomotriz.Api.Models;
+using Todomotriz.Api.Contracts;
 
 namespace Todomotriz.Api.Services;
 
 public interface IUserService
 {
-    Task<List<User>> GetAllAsync();
-    Task<User?> GetByIdAsync(Guid id);
-    Task<User> CreateAsync(User user);
-    Task UpdateAsync(User user);
-    Task DeleteAsync(Guid id);
+    Task<LoginResponse> LoginAsync(LoginRequest request);
+    Task<List<UserDto>> GetAllAsync();
+    Task<UserDto> GetByIdAsync(Guid id);
+    Task<UserDto> CreateAsync(UserSaveRequest request);
+    Task UpdateAsync(Guid id, UserSaveRequest request, Guid currentUserId);
+    Task DeleteAsync(Guid id, Guid currentUserId);
 }

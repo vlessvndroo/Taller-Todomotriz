@@ -1,11 +1,14 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Todomotriz.Api.Models;
+using Todomotriz.Api.Security;
 using Todomotriz.Api.Services;
 
 namespace Todomotriz.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ProductsController : ControllerBase
 {
     private readonly IProductService _service;
@@ -19,19 +22,13 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<List<Product>>> GetAll() => Ok(await _service.GetAllAsync());
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Product>> GetById(Guid id)
-    {
-        var p = await _service.GetByIdAsync(id);
-        if (p == null) return NotFound();
-        return Ok(p);
-    }
+    public async Task<ActionResult<Product>> GetById(Guid id) => Ok(await _service.GetByIdAsync(id));
 
     [HttpGet("search")]
-    public async Task<ActionResult<List<Product>>> Search([FromQuery] string q)
-    {
-        return Ok(await _service.SearchAsync(q ?? string.Empty));
-    }
+    public async Task<ActionResult<List<Product>>> Search([FromQuery] string q) =>
+        Ok(await _service.SearchAsync(q ?? string.Empty));
 
+    [Authorize(Roles = Roles.Gestion)]
     [HttpPost]
     public async Task<ActionResult<Product>> Create([FromBody] Product product)
     {
@@ -39,33 +36,18 @@ public class ProductsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
+    [Authorize(Roles = Roles.Gestion)]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] Product product)
     {
-        var existing = await _service.GetByIdAsync(id);
-        if (existing == null) return NotFound();
-
-        // Map fields
-        existing.Codigo = product.Codigo;
-        existing.Nombre = product.Nombre;
-        existing.Descripcion = product.Descripcion;
-        existing.Categoria = product.Categoria;
-        existing.Cantidad = product.Cantidad;
-        existing.PrecioCompra = product.PrecioCompra;
-        existing.PrecioVenta = product.PrecioVenta;
-        existing.StockMinimo = product.StockMinimo;
-        existing.Proveedor = product.Proveedor;
-        existing.Ubicacion = product.Ubicacion;
-
-        await _service.UpdateAsync(existing);
+        await _service.UpdateAsync(id, product);
         return NoContent();
     }
 
+    [Authorize(Roles = Roles.Admin)]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var existing = await _service.GetByIdAsync(id);
-        if (existing == null) return NotFound();
         await _service.DeleteAsync(id);
         return NoContent();
     }

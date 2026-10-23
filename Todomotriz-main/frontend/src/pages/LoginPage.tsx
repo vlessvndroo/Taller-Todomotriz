@@ -14,7 +14,7 @@ const features = [
 ];
 
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, sessionExpired } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -80,6 +80,12 @@ export function LoginPage() {
 
           <h2 className="text-4xl font-bold uppercase">Iniciar sesión</h2>
           <p className="mt-2 text-muted-foreground">Ingresa con tu cuenta para gestionar el taller.</p>
+
+          {sessionExpired && !error && (
+            <div role="status" className="mt-6 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm font-medium text-warning">
+              Tu sesión expiró. Vuelve a iniciar sesión.
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
             <Field label="Correo electrónico" htmlFor="email">

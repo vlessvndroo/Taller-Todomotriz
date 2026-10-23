@@ -17,6 +17,18 @@ export function applyTheme(theme: Theme = readTheme()) {
   document.documentElement.classList.toggle('dark', theme === 'dark');
 }
 
+/** Al imprimir se usa siempre el tema claro (texto oscuro sobre papel blanco) */
+export function setupPrintTheme() {
+  let wasDark = false;
+  window.addEventListener('beforeprint', () => {
+    wasDark = document.documentElement.classList.contains('dark');
+    document.documentElement.classList.remove('dark');
+  });
+  window.addEventListener('afterprint', () => {
+    if (wasDark) document.documentElement.classList.add('dark');
+  });
+}
+
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(readTheme);
 

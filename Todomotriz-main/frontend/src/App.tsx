@@ -12,10 +12,15 @@ import { UsuariosView } from './pages/usuarios/UsuariosView';
 
 function AppContent() {
   const { user, isLoading } = useAuth();
-  const [currentView, setCurrentView] = useState<ViewId>('dashboard');
 
   if (isLoading) return <LoadingState />;
   if (!user) return <LoginPage />;
+  // key: cada sesión empieza de cero en el Dashboard
+  return <AuthenticatedApp key={user.id} />;
+}
+
+function AuthenticatedApp() {
+  const [currentView, setCurrentView] = useState<ViewId>('dashboard');
 
   const renderView = () => {
     switch (currentView) {

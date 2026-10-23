@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Eye, EyeOff, Pencil, Phone, Plus, Shield, Trash2, Users } from 'lucide-react';
+import { Check, Pencil, Phone, Plus, Shield, Trash2, Users } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useFeedback } from '../../components/feedback/FeedbackProvider';
 import { useApiData } from '../../lib/useApiData';
@@ -39,14 +39,12 @@ export function UsuariosView() {
   const [filtro, setFiltro] = useState<Filtro>('todos');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
-  const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
 
   if (loading) return <LoadingState label="Cargando usuarios..." />;
   if (error || !data) return <ErrorState message={error ?? ''} onRetry={reload} />;
 
   const usuarios = data.usuarios;
   const setUsuarios = (next: User[]) => setData({ usuarios: next });
-  const isAdmin = currentUser?.rol === 'admin';
   const isSelf = (u: User) => u.id === currentUser?.id;
   const count = (rol: UserRole) => usuarios.filter((u) => u.rol === rol).length;
 
@@ -56,13 +54,6 @@ export function UsuariosView() {
 
   const showActions = permissions.usuarios.editar || permissions.usuarios.eliminar;
 
-  const togglePassword = (id: string) => {
-    const next = new Set(visiblePasswords);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setVisiblePasswords(next);
-  };
-
   const openDialog = (usuario?: User) => {
     setEditing(usuario ?? null);
     setDialogOpen(true);
@@ -71,8 +62,9 @@ export function UsuariosView() {
   const handleSave = async (payload: UsuarioPayload) => {
     try {
       if (editing) {
-        await api(`/users/${editing.id}`, 'PUT', { ...editing, ...payload });
-        setUsuarios(usuarios.map((u) => (u.id === editing.id ? { ...u, ...payload, telefono: payload.telefono ?? undefined } : u)));
+        await api(`/users/${editing.id}`, 'PUT', payload);
+        const updated = await api<User>(`/users/${editing.id}`);
+        setUsuarios(usuarios.map((u) => (u.id === editing.id ? updated : u)));
         toast('Usuario modificado correctamente');
       } else {
         const created = await api<User>('/users', 'POST', payload);
@@ -89,7 +81,8 @@ export function UsuariosView() {
   const toggleActivo = async (usuario: User) => {
     const updated = { ...usuario, activo: !usuario.activo };
     try {
-      await api(`/users/${usuario.id}`, 'PUT', updated);
+      // Sin contraseña: el backend conserva la actual
+      await api(`/users/${usuario.id}`, 'PUT', { ...updated, password: null });
       setUsuarios(usuarios.map((u) => (u.id === usuario.id ? updated : u)));
       toast(`${usuario.nombre} ahora está ${updated.activo ? 'activo' : 'inactivo'}`);
     } catch (err) {
@@ -110,7 +103,7 @@ export function UsuariosView() {
       setUsuarios(usuarios.filter((u) => u.id !== usuario.id));
       toast('Usuario eliminado');
     } catch (err) {
-      toast(`No se pudo eliminar el usuario. ${errorMessage(err)}`, 'error');
+      toast(errorMessage(err), 'error');
     }
   };
 
@@ -153,7 +146,6 @@ export function UsuariosView() {
                 <TableHead>Nombre</TableHead>
                 <TableHead>Teléfono</TableHead>
                 <TableHead>Rol</TableHead>
-                {isAdmin && <TableHead>Contraseña</TableHead>}
                 <TableHead>Estado</TableHead>
                 {showActions && <TableHead className="text-right">Acciones</TableHead>}
               </TableRow>
@@ -161,7 +153,6 @@ export function UsuariosView() {
             <TableBody>
               {visibles.map((u) => {
                 const canToggle = permissions.usuarios.editar && !isSelf(u);
-                const shown = visiblePasswords.has(u.id);
                 return (
                   <TableRow key={u.id}>
                     <TableCell>
@@ -196,20 +187,6 @@ export function UsuariosView() {
                     <TableCell>
                       <RolBadge rol={u.rol} />
                     </TableCell>
-                    {isAdmin && (
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <code className="min-w-[96px] rounded-md bg-muted px-2 py-1 text-xs">
-                            {u.password ? (shown ? u.password : '••••••••') : '****'}
-                          </code>
-                          {u.password && (
-                            <RowAction label={shown ? 'Ocultar contraseña' : 'Mostrar contraseña'} onClick={() => togglePassword(u.id)}>
-                              {shown ? <EyeOff /> : <Eye />}
-                            </RowAction>
-                          )}
-                        </div>
-                      </TableCell>
-                    )}
                     <TableCell>
                       <button
                         type="button"

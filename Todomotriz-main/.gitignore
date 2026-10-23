@@ -43,3 +43,6 @@ logs/
 *.db
 *.db-shm
 *.db-wal
+
+# Clave de firma de los tokens JWT (se genera sola en el primer arranque)
+jwt-key.txt

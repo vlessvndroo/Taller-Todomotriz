@@ -15,7 +15,8 @@ export interface UsuarioPayload {
   email: string;
   rol: UserRole;
   telefono: string | null;
-  password: string;
+  /** null = no se cambia */
+  password: string | null;
   activo: boolean;
 }
 
@@ -56,6 +57,7 @@ export function UsuarioFormDialog({ open, onOpenChange, usuario, isSelf, onSave 
     if (!email) next.email = 'Email requerido';
     if (tlfNumero && !/^\d{7}$/.test(tlfNumero)) next.telefono = 'El número debe tener exactamente 7 dígitos';
     if (!usuario && !password) next.password = 'La contraseña es obligatoria para nuevos usuarios';
+    else if (password && password.length < 6) next.password = 'La contraseña debe tener al menos 6 caracteres';
     setErrors(next);
     if (Object.keys(next).length > 0) return;
 
@@ -64,10 +66,9 @@ export function UsuarioFormDialog({ open, onOpenChange, usuario, isSelf, onSave 
       await onSave({
         nombre: (form.get('nombre') as string).trim(),
         email,
-        rol: form.get('rol') as UserRole,
+        rol: ((form.get('rol') as UserRole | null) ?? usuario?.rol ?? 'empleado'),
         telefono: tlfNumero ? `${tlfPrefijo}-${tlfNumero}` : null,
-        // Siempre se envía: el backend reemplazaría una contraseña vacía por la de fábrica
-        password: password || usuario?.password || 'password123',
+        password: password || null,
         activo,
       });
     } finally {
@@ -94,7 +95,7 @@ export function UsuarioFormDialog({ open, onOpenChange, usuario, isSelf, onSave 
             label="Contraseña"
             htmlFor="password"
             error={errors.password}
-            hint={usuario ? 'Dejar en blanco para no cambiar' : undefined}
+            hint={usuario ? 'Las contraseñas se guardan cifradas: no se pueden ver, solo reemplazar. Dejar en blanco para no cambiarla.' : 'Mínimo 6 caracteres'}
           >
             <Input
               id="password"
@@ -114,8 +115,8 @@ export function UsuarioFormDialog({ open, onOpenChange, usuario, isSelf, onSave 
               invalid={!!errors.telefono}
             />
           </Field>
-          <Field label="Rol">
-            <Select name="rol" defaultValue={usuario?.rol ?? 'empleado'}>
+          <Field label="Rol" hint={isSelf ? 'No puedes cambiar tu propio rol' : undefined}>
+            <Select name="rol" defaultValue={usuario?.rol ?? 'empleado'} disabled={isSelf}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

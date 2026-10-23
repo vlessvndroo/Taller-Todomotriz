@@ -16,12 +16,11 @@ import { RowAction } from '../../components/common/FormFields';
 import { EstadoFacturaBadge } from './EstadoFacturaBadge';
 import { FacturaDetailDialog } from './FacturaDetailDialog';
 import { FacturaFormDialog, type FacturaFormValues } from './FacturaFormDialog';
-import { calcularTotales, siguienteNumeroFactura } from './facturas';
 
 type Filtro = 'todas' | Factura['estado'];
 
 export function FacturacionView() {
-  const { permissions, user } = useAuth();
+  const { permissions } = useAuth();
   const { toast, confirm } = useFeedback();
   const { data, setData, loading, error, reload } = useApiData<{ facturas: Factura[]; productos: ProductoInventario[] }>({
     facturas: '/invoices',
@@ -77,29 +76,17 @@ export function FacturacionView() {
   };
 
   const handleSave = async (values: FacturaFormValues) => {
-    const { subtotal, iva, total } = calcularTotales(values.items);
+    // El backend asigna número, fecha, precios, IVA y totales; solo se envían productos y cantidades
     const payload = {
-      numeroFactura: editing ? editing.numeroFactura : siguienteNumeroFactura(facturas),
-      fecha: editing ? editing.fecha : new Date().toISOString(),
       ...values,
-      items: values.items.map(({ productoId, producto, cantidad, precioUnitario, subtotal }) => ({
-        productoId,
-        producto,
-        cantidad,
-        precioUnitario,
-        subtotal,
-      })),
-      subtotal,
-      iva,
-      total,
-      estado: editing ? editing.estado : 'pendiente',
-      creadoPor: editing ? editing.creadoPor : user?.nombre || '',
+      items: values.items.map(({ productoId, cantidad }) => ({ productoId, cantidad })),
     };
 
     try {
       if (editing) {
-        await api(`/invoices/${editing.id}`, 'PUT', { ...payload, id: editing.id });
-        update({ facturas: facturas.map((f) => (f.id === editing.id ? ({ ...editing, ...payload } as Factura) : f)) });
+        await api(`/invoices/${editing.id}`, 'PUT', payload);
+        const updated = await fetchCompleta(editing.id);
+        update({ facturas: facturas.map((f) => (f.id === editing.id ? updated : f)) });
         toast('Factura actualizada');
       } else {
         const created = await api<Factura>('/invoices', 'POST', payload);
@@ -132,8 +119,7 @@ export function FacturacionView() {
     if (!ok) return;
 
     try {
-      const completa = await fetchCompleta(factura.id);
-      await api(`/invoices/${factura.id}`, 'PUT', { ...completa, estado });
+      await api(`/invoices/${factura.id}/estado`, 'PATCH', { estado });
       update({ facturas: facturas.map((f) => (f.id === factura.id ? { ...f, estado } : f)) });
       toast(`Factura ${estado === 'pagada' ? 'PAGADA' : 'ANULADA'} correctamente.`);
       if (estado === 'anulada') await refreshProductos();

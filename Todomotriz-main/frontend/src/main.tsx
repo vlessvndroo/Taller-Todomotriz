@@ -9,9 +9,10 @@ import '@fontsource/barlow-condensed/600.css'
 import '@fontsource/barlow-condensed/700.css'
 import './index.css'
 import App from './App'
-import { applyTheme } from './lib/theme'
+import { applyTheme, setupPrintTheme } from './lib/theme'
 
 applyTheme()
+setupPrintTheme()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

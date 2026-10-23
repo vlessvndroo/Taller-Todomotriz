@@ -11,9 +11,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.32" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.32" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.13" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Datos iniciales exportados con el comando de exportación (ver README) -->
+    <None Update="Data\seed-data.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

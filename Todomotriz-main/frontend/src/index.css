@@ -106,25 +106,47 @@
   }
 }
 
-/* Impresión: solo se imprime el bloque marcado con .print-area (ej. la factura) */
+/*
+ * Impresión: solo sale el bloque .print-area (ej. el comprobante de factura).
+ * Se ocultan el resto de la app y el fondo del diálogo, y el diálogo deja de ser
+ * flotante para que el comprobante ocupe la hoja completa. El tema claro se fuerza
+ * desde lib/theme.ts (eventos beforeprint/afterprint).
+ */
 @media print {
   @page {
     margin: 14mm;
   }
-  body * {
-    visibility: hidden;
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
   }
-  .print-area,
-  .print-area * {
-    visibility: visible;
-  }
-  .print-area {
-    position: absolute;
-    inset: 0;
-    color: #000;
-    background: #fff;
-  }
+  body > *:not(:has(.print-area)),
+  [data-slot="dialog-overlay"],
   .no-print {
     display: none !important;
+  }
+  [data-slot="dialog-content"]:has(.print-area) {
+    position: static !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    animation: none !important;
+    opacity: 1 !important;
+  }
+  .print-area {
+    padding: 0 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .print-area tr,
+  .print-area section {
+    break-inside: avoid;
   }
 }

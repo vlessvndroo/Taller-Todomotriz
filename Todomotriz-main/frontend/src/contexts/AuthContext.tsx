@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { AuthUser, UserRole, RolePermissions } from '../types';
-import { api } from '../lib/api';
+import { api, SESSION_EXPIRED_EVENT, SESSION_KEY } from '../lib/api';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -8,6 +8,8 @@ interface AuthContextType {
   logout: () => void;
   permissions: RolePermissions;
   isLoading: boolean;
+  /** true si la última sesión se cerró porque el token venció */
+  sessionExpired: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,22 +36,40 @@ const rolePermissions: Record<UserRole, RolePermissions> = {
   },
 };
 
+/** Sesión guardada válida: con token JWT real y sin vencer */
+function readSession(): AuthUser | null {
+  try {
+    const saved = localStorage.getItem(SESSION_KEY);
+    if (!saved) return null;
+    const user = JSON.parse(saved) as AuthUser;
+    const payload = JSON.parse(atob(user.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (typeof payload.exp !== 'number' || payload.exp * 1000 <= Date.now()) throw new Error('expirado');
+    return user;
+  } catch {
+    // Sesión de una versión anterior (sin JWT), corrupta o vencida
+    localStorage.removeItem(SESSION_KEY);
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
     // Recuperar sesión al recargar
-    const savedUser = localStorage.getItem('authUser');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch {
-        localStorage.removeItem('authUser');
-      }
-    }
+    setUser(readSession());
     setIsLoading(false);
+
+    // El backend rechazó el token: se cierra la sesión
+    const onExpired = () => {
+      localStorage.removeItem(SESSION_KEY);
+      setUser(null);
+      setSessionExpired(true);
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -68,7 +88,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
       
       setUser(authUser);
-      localStorage.setItem('authUser', JSON.stringify(authUser));
+      setSessionExpired(false);
+      localStorage.setItem(SESSION_KEY, JSON.stringify(authUser));
 
     } catch (error) {
       console.error("Login Error:", error);
@@ -78,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('authUser');
+    localStorage.removeItem(SESSION_KEY);
   };
 
   // Permisos según rol actual
@@ -87,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     : rolePermissions.empleado; 
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, permissions, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, permissions, isLoading, sessionExpired }}>
       {children}
     </AuthContext.Provider>
   );

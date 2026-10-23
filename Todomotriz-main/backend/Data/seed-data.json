@@ -1,0 +1,248 @@
+{
+  "suppliers": [
+    {
+      "id": "078f22b4-d797-452f-87c2-943989c60e3f",
+      "nombre": "Aceites y Filtros S.A.",
+      "rif": "J-87654321",
+      "contacto": "Maria Gomez",
+      "telefono": "0414-9998888",
+      "email": "contacto@aceites.com",
+      "direccion": "Zona Industrial",
+      "ciudad": "Valencia",
+      "activo": true,
+      "createdAt": "2026-01-13T01:02:02.6682474Z"
+    },
+    {
+      "id": "4fc2416f-b3ce-43ec-a045-035602225509",
+      "nombre": "AutoPartes de Miranda S.A.",
+      "rif": "V-16345209",
+      "contacto": "Mariana Gonz\u00E1lez",
+      "telefono": "0412-1234567",
+      "email": "contacto@autopartes.com",
+      "direccion": "Parque Industrial Norte",
+      "ciudad": "Caracas",
+      "activo": true,
+      "createdAt": "2026-01-13T01:17:43.7067024Z"
+    },
+    {
+      "id": "14850039-2bc0-4925-8b0c-4a6e37296887",
+      "nombre": "Repuestos Caracas C.A.",
+      "rif": "J-12345678",
+      "contacto": "Pedro P\u00E9rez",
+      "telefono": "0212-5551111",
+      "email": "ventas@repuestosccs.com",
+      "direccion": "Av. Principal",
+      "ciudad": "Caracas",
+      "activo": true,
+      "createdAt": "2026-01-13T01:02:02.6680978Z"
+    }
+  ],
+  "products": [
+    {
+      "id": "292f3d9c-4dae-48e8-9f18-67712f987993",
+      "codigo": "ACE-001",
+      "nombre": "Aceite 20W50 Mineral",
+      "descripcion": "Aceite de motor 1L",
+      "categoria": "Lubricantes",
+      "cantidad": 50,
+      "precioCompra": 5.0,
+      "precioVenta": 8.5,
+      "stockMinimo": 10,
+      "proveedorId": "078f22b4-d797-452f-87c2-943989c60e3f",
+      "proveedor": "Aceites y Filtros S.A.",
+      "ubicacion": "Estante A1",
+      "ultimaActualizacion": "2026-01-13T01:02:02.6846304Z"
+    },
+    {
+      "id": "866a414d-f175-4354-947d-20c8c97f8261",
+      "codigo": "FIL-001",
+      "nombre": "Filtro de Aceite Universal",
+      "descripcion": "Rosca est\u00E1ndar",
+      "categoria": "Filtros",
+      "cantidad": 30,
+      "precioCompra": 2.5,
+      "precioVenta": 5.0,
+      "stockMinimo": 5,
+      "proveedorId": "078f22b4-d797-452f-87c2-943989c60e3f",
+      "proveedor": "Aceites y Filtros S.A.",
+      "ubicacion": "Estante A2",
+      "ultimaActualizacion": "2026-01-13T01:02:02.6847573Z"
+    },
+    {
+      "id": "12600873-7809-472d-bfa7-1195645ce9ab",
+      "codigo": "PAS-001",
+      "nombre": "Pastillas de Freno Delanteras",
+      "descripcion": "Cer\u00E1mica",
+      "categoria": "Frenos",
+      "cantidad": 11,
+      "precioCompra": 20.0,
+      "precioVenta": 35.0,
+      "stockMinimo": 4,
+      "proveedorId": "14850039-2bc0-4925-8b0c-4a6e37296887",
+      "proveedor": "Repuestos Caracas C.A.",
+      "ubicacion": "Pasillo B",
+      "ultimaActualizacion": "2026-01-13T05:43:14.1466242Z"
+    }
+  ],
+  "users": [
+    {
+      "id": "3322de0e-f511-4457-a0a8-a92fb76986f3",
+      "nombre": "Juan Gerente",
+      "email": "gerente@taller.com",
+      "rol": "gerente",
+      "activo": true,
+      "telefono": "0412-1234567",
+      "createdAt": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "fc62c84a-8c57-4a8c-b619-4ee91f9061a8",
+      "nombre": "Admin Principal",
+      "email": "admin@taller.com",
+      "rol": "admin",
+      "activo": true,
+      "telefono": "0412-9876543",
+      "createdAt": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "7d171f85-d6eb-4470-bebd-d9775c64b27b",
+      "nombre": "Carlos Empleado",
+      "email": "empleado@taller.com",
+      "rol": "empleado",
+      "activo": true,
+      "telefono": "0412-2345678",
+      "createdAt": "2024-01-15T00:00:00Z"
+    },
+    {
+      "id": "f34a0fcc-5b65-4405-9455-b3a9f3d5ff0b",
+      "nombre": "Javier Di Addezio",
+      "email": "javiaddezio@gmail.com",
+      "rol": "admin",
+      "activo": true,
+      "telefono": "0412-6033008",
+      "createdAt": "2026-01-13T01:16:18.4452607Z"
+    },
+    {
+      "id": "39fb7147-f28c-45e3-bdb5-98294ee8dbc9",
+      "nombre": "Adriano Maiquetia",
+      "email": "adrianoprueba@taller.com",
+      "rol": "admin",
+      "activo": true,
+      "telefono": "0412-1234567",
+      "createdAt": "2026-01-13T11:21:37.7890977Z"
+    }
+  ],
+  "invoices": [
+    {
+      "id": "f05f02f7-9b59-4398-9656-c23963109ccd",
+      "numeroFactura": "FAC-2025-001",
+      "fecha": "2025-10-10T10:00:00Z",
+      "cliente": "Josefa Mendez",
+      "clienteCedula": "V-12345678",
+      "vehiculo": "Ford Fiesta",
+      "placa": "ABC-123",
+      "subtotal": 17.0,
+      "iva": 2.72,
+      "total": 19.72,
+      "estado": "pagada",
+      "metodoPago": "Efectivo",
+      "observaciones": null,
+      "creadoPor": "Juan Gerente",
+      "items": [
+        {
+          "id": "7d5df864-659a-4622-b582-b73503b5e17e",
+          "invoiceId": "f05f02f7-9b59-4398-9656-c23963109ccd",
+          "invoice": null,
+          "productoId": "292f3d9c-4dae-48e8-9f18-67712f987993",
+          "producto": "Aceite 20W50 Mineral",
+          "cantidad": 2,
+          "precioUnitario": 8.5,
+          "subtotal": 17.0
+        }
+      ]
+    },
+    {
+      "id": "b00f910d-9cba-48ad-8e08-b21a447072f8",
+      "numeroFactura": "FAC-2025-002",
+      "fecha": "2026-01-13T01:19:20.37Z",
+      "cliente": "Luis Ram\u00EDrez",
+      "clienteCedula": "V-12345678",
+      "vehiculo": "Hyundai Accent 2019",
+      "placa": "DEF-9012",
+      "subtotal": 32.5,
+      "iva": 5.2,
+      "total": 37.7,
+      "estado": "pagada",
+      "metodoPago": "Tarjeta",
+      "observaciones": null,
+      "creadoPor": "Javier Di Addezio",
+      "items": [
+        {
+          "id": "f20a1074-c801-48a4-85df-07a2cbc3449b",
+          "invoiceId": "b00f910d-9cba-48ad-8e08-b21a447072f8",
+          "invoice": null,
+          "productoId": "ee1a6958-e3c2-44d9-a5a8-1a2b1ee9551a",
+          "producto": "Aceite Diablo 15-40",
+          "cantidad": 5,
+          "precioUnitario": 6.5,
+          "subtotal": 32.5
+        }
+      ]
+    },
+    {
+      "id": "85914c74-7361-4bf9-8384-ff3e22f6a40c",
+      "numeroFactura": "FAC-2025-003",
+      "fecha": "2026-01-13T01:20:14.574Z",
+      "cliente": "Luis Ram\u00EDrez",
+      "clienteCedula": "V-12345678",
+      "vehiculo": "Hyundai Accent 2019",
+      "placa": "DEF-9012",
+      "subtotal": 266.5,
+      "iva": 42.64,
+      "total": 309.14,
+      "estado": "pendiente",
+      "metodoPago": "Tarjeta",
+      "observaciones": null,
+      "creadoPor": "Javier Di Addezio",
+      "items": [
+        {
+          "id": "d9097666-f333-4e97-ad44-fda06dd8dc2e",
+          "invoiceId": "85914c74-7361-4bf9-8384-ff3e22f6a40c",
+          "invoice": null,
+          "productoId": "ee1a6958-e3c2-44d9-a5a8-1a2b1ee9551a",
+          "producto": "Aceite Diablo 15-40",
+          "cantidad": 41,
+          "precioUnitario": 6.5,
+          "subtotal": 266.5
+        }
+      ]
+    },
+    {
+      "id": "abd27ffc-96f6-4fd2-8107-4bc25bef784a",
+      "numeroFactura": "FAC-2025-004",
+      "fecha": "2026-01-13T05:43:13.999Z",
+      "cliente": "Luis Torres",
+      "clienteCedula": "V-29948009",
+      "vehiculo": "Dodge Caliber",
+      "placa": "DEF-9012",
+      "subtotal": 140.0,
+      "iva": 22.400000000000002,
+      "total": 162.4,
+      "estado": "pagada",
+      "metodoPago": "Efectivo",
+      "observaciones": null,
+      "creadoPor": "Javier Di Addezio",
+      "items": [
+        {
+          "id": "77ee4cb9-ebee-4b1b-bfb6-da4794535aef",
+          "invoiceId": "abd27ffc-96f6-4fd2-8107-4bc25bef784a",
+          "invoice": null,
+          "productoId": "12600873-7809-472d-bfa7-1195645ce9ab",
+          "producto": "Pastillas de Freno Delanteras",
+          "cantidad": 4,
+          "precioUnitario": 35.0,
+          "subtotal": 140.0
+        }
+      ]
+    }
+  ]
+}

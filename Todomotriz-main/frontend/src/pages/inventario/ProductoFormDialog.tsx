@@ -9,15 +9,15 @@ import { Field } from '../../components/common/FormFields';
 import { useFeedback } from '../../components/feedback/FeedbackProvider';
 import { CATEGORIAS_PRODUCTO } from '../../lib/constants';
 import { formatMoney } from '../../lib/format';
-import type { ProductoInventario } from '../../types';
+import type { ProductoInventario, Proveedor } from '../../types';
 
-export type ProductoPayload = Omit<ProductoInventario, 'id' | 'ultimaActualizacion'>;
+export type ProductoPayload = Omit<ProductoInventario, 'id' | 'ultimaActualizacion' | 'proveedor'>;
 
 interface ProductoFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   producto: ProductoInventario | null;
-  proveedores: string[];
+  proveedores: Proveedor[];
   onSave: (payload: ProductoPayload) => Promise<void>;
 }
 
@@ -39,6 +39,9 @@ export function ProductoFormDialog({ open, onOpenChange, producto, proveedores, 
     }
   }
 
+  // Se ofrecen los proveedores activos y, si el producto tiene uno inactivo, también ese
+  const opcionesProveedor = proveedores.filter((p) => p.activo || p.id === producto?.proveedorId);
+
   const compra = Number(precioCompra);
   const venta = Number(precioVenta);
   const margen = compra > 0 && venta > 0 ? ((venta - compra) / compra) * 100 : null;
@@ -56,7 +59,7 @@ export function ProductoFormDialog({ open, onOpenChange, producto, proveedores, 
       precioCompra: compra,
       precioVenta: venta,
       stockMinimo: Number(form.get('stockMinimo')),
-      proveedor: (form.get('proveedor') as string) || null,
+      proveedorId: (form.get('proveedorId') as string) || null,
       ubicacion: (form.get('ubicacion') as string) || null,
     } as unknown as ProductoPayload;
 
@@ -122,14 +125,15 @@ export function ProductoFormDialog({ open, onOpenChange, producto, proveedores, 
               </Select>
             </Field>
             <Field label="Proveedor">
-              <Select name="proveedor" defaultValue={producto?.proveedor ?? undefined}>
+              <Select name="proveedorId" defaultValue={producto?.proveedorId ?? undefined}>
                 <SelectTrigger>
-                  <SelectValue placeholder={proveedores.length ? 'Seleccione' : 'No hay proveedores'} />
+                  <SelectValue placeholder={opcionesProveedor.length ? 'Seleccione' : 'No hay proveedores'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {proveedores.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
+                  {opcionesProveedor.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.nombre}
+                      {!p.activo && ' (inactivo)'}
                     </SelectItem>
                   ))}
                 </SelectContent>

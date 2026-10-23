@@ -51,8 +51,9 @@ export function ProveedoresView() {
   const handleSave = async (payload: ProveedorPayload) => {
     try {
       if (editing) {
-        await api(`/suppliers/${editing.id}`, 'PUT', { ...editing, ...payload });
-        setProveedores(proveedores.map((p) => (p.id === editing.id ? { ...p, ...payload } : p)));
+        await api(`/suppliers/${editing.id}`, 'PUT', payload);
+        const updated = await api<Proveedor>(`/suppliers/${editing.id}`);
+        setProveedores(proveedores.map((p) => (p.id === editing.id ? updated : p)));
         toast('Proveedor actualizado con éxito');
       } else {
         const created = await api<Proveedor>('/suppliers', 'POST', payload);
@@ -79,7 +80,7 @@ export function ProveedoresView() {
       setProveedores(proveedores.filter((p) => p.id !== proveedor.id));
       toast('Proveedor eliminado');
     } catch (err) {
-      toast(`No se pudo eliminar el proveedor. ${errorMessage(err)}`, 'error');
+      toast(errorMessage(err), 'error');
     }
   };
 
