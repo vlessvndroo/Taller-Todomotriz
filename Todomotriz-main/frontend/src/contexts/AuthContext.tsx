@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { AuthUser, UserRole, RolePermissions } from "../types/index.ts";
+import type { AuthUser, UserRole, RolePermissions } from '../types';
+import { API_BASE } from '../lib/api';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -38,7 +39,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   
   // Ajusta el puerto si tu backend corre en el 5001 o 5000
-  const API_BASE = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:5000';
 
   useEffect(() => {
     // Recuperar sesión al recargar

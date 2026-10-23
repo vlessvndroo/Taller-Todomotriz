@@ -185,41 +185,45 @@ npm run dev
 Todomotriz-main/
 ├── Todomotriz-main.sln        # Solución de Visual Studio para el proyecto .NET
 ├── start.bat                  # Script para arranque simultáneo de Backend y Frontend
-├── package.json               # Configuración auxiliar del workspace
 │
-├── backend/                   # Proyecto Backend (.NET Core Web API)
+├── backend/                   # Proyecto Backend (.NET Web API)
 │   ├── Controllers/           # Controladores REST (Auth, Invoices, Products, Suppliers, Users)
-│   ├── Data/                  # Configuración DbContext (EF Core) y Seeder de datos iniciales
+│   ├── Data/                  # DbContext (EF Core) y Seeder de datos iniciales
 │   │   ├── AppDbContext.cs
 │   │   └── DbSeeder.cs
 │   ├── Models/                # Entidades de dominio (User, Product, Supplier, Invoice, InvoiceItem)
-│   ├── Interfaces/            # Contratos de repositorios y servicios
-│   ├── Repositories/          # Implementación de acceso a datos (Patrón Repositorio)
-│   ├── Services/              # Capa de lógica de negocio
-│   ├── Todomotriz.Api.csproj  # Configuración y paquetes NuGet del proyecto .NET
+│   ├── Repositories/          # Acceso a datos: IRepository genérico + repositorios por entidad
+│   ├── Services/              # Lógica de negocio (interfaces I*Service + implementaciones)
 │   ├── Program.cs             # Configuración de dependencias, CORS, DB y middleware
-│   └── todomotriz.db          # Base de datos SQLite (se genera automáticamente)
+│   └── Todomotriz.Api.csproj  # Configuración y paquetes NuGet del proyecto .NET
 │
 └── frontend/                  # Proyecto Frontend (React 19 + TypeScript + Vite)
     ├── public/                # Archivos estáticos
     ├── src/
-    │   ├── components/        # Vistas principales y componentes de interfaz
+    │   ├── pages/             # Pantallas de la aplicación
+    │   │   ├── LoginPage.tsx        # Inicio de sesión
     │   │   ├── Dashboard.tsx        # Panel de métricas y alertas
-    │   │   ├── DashboardLayout.tsx  # Barra de navegación, sidebar y header de usuario
-    │   │   ├── FacturacionView.tsx  # Emisión, anulación, cobro e impresión de facturas
     │   │   ├── InventarioView.tsx   # Control de stock, precios y almacén
+    │   │   ├── FacturacionView.tsx  # Emisión, anulación, cobro e impresión de facturas
     │   │   ├── ProveedoresView.tsx  # Directorio y gestión de proveedores
-    │   │   ├── UsuariosView.tsx     # Gestión de usuarios del sistema
-    │   │   ├── LoginPage.tsx        # Pantalla de inicio de sesión
-    │   │   └── ui/                  # Componentes base reutilizables (Botones, Modales, Inputs)
+    │   │   └── UsuariosView.tsx     # Gestión de usuarios del sistema
+    │   ├── components/
+    │   │   ├── layout/        # DashboardLayout: sidebar, navegación y header de usuario
+    │   │   └── ui/            # Componentes base reutilizables (botones, modales, inputs, tablas)
     │   ├── contexts/          # Contextos de React (AuthContext con matriz RBAC)
-    │   ├── types/             # Definición de interfaces TypeScript (Factura, Producto, Usuario, etc.)
-    │   ├── App.tsx            # Enrutador condicional según autenticación y navegación
-    │   └── main.tsx           # Punto de entrada de la aplicación Vite
+    │   ├── lib/               # Utilidades compartidas (api.ts: URL base del backend)
+    │   ├── styles/            # Variables y estilos globales
+    │   ├── types/             # Interfaces TypeScript (Factura, Producto, Usuario, etc.)
+    │   ├── App.tsx            # Navegación condicional según autenticación
+    │   └── main.tsx           # Punto de entrada de la aplicación
     ├── package.json           # Dependencias de npm y scripts
     ├── tailwind.config.ts     # Configuración de estilos y tema Tailwind
     └── vite.config.ts         # Configuración del empaquetador Vite
 ```
+
+> La base de datos SQLite (`backend/todomotriz.db`) no se versiona: se crea y precarga automáticamente al iniciar la API por primera vez.
+>
+> La URL del backend se puede cambiar creando `frontend/.env` con `VITE_API_URL=http://otra-url:puerto`.
 
 ---
 

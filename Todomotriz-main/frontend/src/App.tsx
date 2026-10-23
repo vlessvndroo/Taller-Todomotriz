@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { AuthProvider, useAuth } from "./contexts/AuthContext.tsx";
-import { LoginPage } from "./components/LoginPage.tsx";
-import { DashboardLayout } from './components/DashboardLayout.tsx';
-import { Dashboard } from './components/Dashboard.tsx';
-import { InventarioView } from './components/InventarioView.tsx';
-import { FacturacionView } from './components/FacturacionView.tsx';
-import { ProveedoresView } from './components/ProveedoresView.tsx';
-import { UsuariosView } from './components/UsuariosView.tsx';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LoginPage } from './pages/LoginPage';
+import { DashboardLayout } from './components/layout/DashboardLayout';
+import { Dashboard } from './pages/Dashboard';
+import { InventarioView } from './pages/InventarioView';
+import { FacturacionView } from './pages/FacturacionView';
+import { ProveedoresView } from './pages/ProveedoresView';
+import { UsuariosView } from './pages/UsuariosView';
 
 function AppContent() {
   const { user, isLoading } = useAuth();

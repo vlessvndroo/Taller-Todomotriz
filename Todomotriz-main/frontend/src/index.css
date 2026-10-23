@@ -1,4 +1,4 @@
-/* Directivas Tailwind primero, luego import de estilos globales */
+/* Estilos globales primero (los @import deben ir antes que todo), luego las directivas de Tailwind */
 @import "./styles/globals.css";
 @tailwind base;
 @tailwind components;
